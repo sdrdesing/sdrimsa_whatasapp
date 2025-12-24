@@ -1,0 +1,16 @@
+*
+!.gitignore
+/node_modules
+/vendor
+.env
+.env.*
+storage/*.key
+storage/logs/*
+storage/framework/*
+bootstrap/cache/*
+npm-debug.log*
+yarn-error.log*
+.idea
+.vscode
+docker-data
+
