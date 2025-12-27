@@ -9,18 +9,33 @@ import { Link } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
 
+/* const links = [
+    {
+        name: 'Tenant',
+        url: route('tenant'),
+        active: route().current('tenant'),
+    },
+] */
+
 const links = [
     {
         name: 'Dashboard',
-        url: route('dashboard'),
-        active: route().current('dashboard'),
+        url: route('tenant.dashboard'),
+        active: route().current('tenant.dashboard'),
     },
-    /* {
-        name: 'Cliente Tenants',
-        url: route('tenants.index'),
-        active: route().current('tenants.index'),
-    }, */
-]
+    {
+        name: 'Tenant',
+        url: route('tenant.home'),
+        active: route().current('tenant.home'),
+    },
+    {
+        name: 'WhatsApp Tables',
+        url: route('tenant.whatsapp.tables'),
+        active: route().current('tenant.whatsapp.tables'),
+    },
+];
+
+
 </script>
 
 <template>

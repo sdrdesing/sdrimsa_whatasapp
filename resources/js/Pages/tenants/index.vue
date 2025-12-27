@@ -36,6 +36,7 @@ const submitForm = () => {
         },
     });
 };
+
 </script>
 
 
@@ -72,7 +73,18 @@ const submitForm = () => {
                                 <tr v-for="tenant in $page.props.tenants" :key="tenant.id">
                                     <td class="border px-4 py-2">{{ tenant.id }}</td>
                                     <td class="border px-4 py-2">{{ tenant.name }}</td>
-                                    <td class="border px-4 py-2"></td>
+                                    <td>
+                                        <template v-if="tenant.domain || (tenant.domains && tenant.domains.length)">
+                                            <a
+                                                :href="(tenant.domain || (tenant.domains && tenant.domains.length ? tenant.domains[0].domain : '')) ? `http://${tenant.domain || tenant.domains[0].domain}` : '#'"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="text-blue-600 hover:underline"
+                                            >
+                                                {{ tenant.domain ? tenant.domain : (tenant.domains && tenant.domains.length ? tenant.domains[0].domain : '') }}
+                                            </a>
+                                        </template>
+                                    </td>
                                     <td class="border px-4 py-2"></td>
                                     <td class="border px-4 py-2"></td>
 

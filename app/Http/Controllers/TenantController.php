@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Stancl\Tenancy\Database\Models\Domain;
+use Illuminate\Support\Facades\Artisan;
 
 class TenantController extends Controller
 {
@@ -14,8 +16,22 @@ class TenantController extends Controller
 
     public function index()
     {
+        $tenants = Tenant::with('domains')->get()->map(function ($t) {
+            return [
+                'id' => $t->id,
+                'name' => data_get($t, 'data.name') ?? null,
+                'domains' => $t->domains->map(function ($d) {
+                    return [
+                        'id' => $d->id ?? null,
+                        'domain' => $d->domain ?? null,
+                    ];
+                })->values(),
+                'domain' => optional($t->domains->first())->domain,
+            ];
+        });
+
         return Inertia::render('tenants/index', [
-            'tenants' => Tenant::all(),
+            'tenants' => $tenants,
         ]);
     }
 
@@ -35,9 +51,17 @@ class TenantController extends Controller
         $tenant = Tenant::create([
             'id' => $request->id,
         ]);
+        $dominBase = parse_url(env('APP_URL'), PHP_URL_HOST) ?: 'localhost';
         $tenant->domains()->create([
-            'domain' => $request->id . '.' . 'sdrimsacbot.test',
+            'domain' => $request->id . '.' . $dominBase,
         ]);
+
+        $tenant->run(function () {
+            Artisan::call('db:seed', [
+                '--class' => \Database\Seeders\TenantSeeder::class,
+            ]);
+        });
+
         return redirect()->route('tenants.index');
     }
 
@@ -81,7 +105,7 @@ class TenantController extends Controller
      */
     public function destroy(Tenant $tenant)
     {
-       $tenant->delete();
-       return redirect()->route('tenants.index');
+        $tenant->delete();
+        return redirect()->route('tenants.index');
     }
 }
