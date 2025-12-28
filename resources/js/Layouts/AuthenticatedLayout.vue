@@ -12,8 +12,8 @@ const showingNavigationDropdown = ref(false);
 const links = [
     {
         name: 'Dashboard',
-        url: route('dashboard'),
-        active: route().current('dashboard'),
+        url: route('system.dashboard'),
+        active: route().current('system.dashboard'),
     },
     {
         name: 'Cliente Tenants',
@@ -33,7 +33,7 @@ const links = [
                         <div class="flex">
                             <!-- Logo -->
                             <div class="shrink-0 flex items-center">
-                                <Link :href="route('dashboard')">
+                                <Link :href="route('system.dashboard')">
                                     <ApplicationLogoDistribuidor class="block h-9 w-auto fill-current text-gray-800" />
                                 </Link>
                             </div>

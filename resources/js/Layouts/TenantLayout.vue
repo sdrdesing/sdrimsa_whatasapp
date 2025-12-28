@@ -20,18 +20,13 @@ const showingNavigationDropdown = ref(false);
 const links = [
     {
         name: 'Dashboard',
-        url: route('tenant.dashboard'),
-        active: route().current('tenant.dashboard'),
-    },
-    {
-        name: 'Tenant',
-        url: route('tenant.home'),
-        active: route().current('tenant.home'),
+        url: route('home'),
+        active: route().current('home'),
     },
     {
         name: 'WhatsApp Tables',
-        url: route('tenant.whatsapp.tables'),
-        active: route().current('tenant.whatsapp.tables'),
+        url: route('whatsapp.tables'),
+        active: route().current('whatsapp.tables'),
     },
 ];
 
@@ -48,7 +43,7 @@ const links = [
                         <div class="flex">
                             <!-- Logo -->
                             <div class="shrink-0 flex items-center">
-                                <Link :href="route('dashboard')">
+                                <Link :href="route('system.dashboard')">
                                     <ApplicationLogo class="block h-9 w-auto fill-current text-white" />
                                 </Link>
                             </div>
@@ -88,7 +83,7 @@ const links = [
                                 </Dropdown>
                             </div>
                             <div class="shrink-0 flex items-center">
-                                <Link :href="route('dashboard')">
+                                <Link :href="route('system.dashboard')">
                                     <ApplicationLogo class="block h-9 w-auto fill-current text-white" />
                                 </Link>
                             </div>

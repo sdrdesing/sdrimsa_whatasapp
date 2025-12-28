@@ -21,12 +21,12 @@ foreach (config('tenancy.central_domains') as $domain) {
 
         Route::get('/', function () {
         // Redirige la raíz al login por defecto
-        return redirect()->route('login');
+        return redirect()->route('system.login');
     });
 
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
-    })->middleware(['auth', 'verified'])->name('dashboard');
+    })->middleware(['auth'])->name('system.dashboard');
 
     Route::middleware('auth')->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -38,7 +38,10 @@ foreach (config('tenancy.central_domains') as $domain) {
 
     });
 
+    /* require __DIR__.'/auth.php'; */
+    Route::name('system.')->group(function () {
     require __DIR__.'/auth.php';
+});
 
     });
 }
