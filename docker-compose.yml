@@ -17,7 +17,7 @@ services:
     image: nginx:alpine
     container_name: nginx
     ports:
-      - "80001:80"
+      - "8090:80"
     volumes:
       - ./docker/nginx:/etc/nginx/conf.d
     depends_on:
