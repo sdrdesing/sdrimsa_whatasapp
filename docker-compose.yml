@@ -45,16 +45,16 @@ services:
       - appnet
 
   node:
-    image: node:20-alpine
-    container_name: laravel_node
-    working_dir: /var/www/html
-    volumes:
-      - .:/var/www/html
-    command: sh -c "npm install && npm run dev"
-    depends_on:
-      - app
-    networks:
-      - appnet
+  image: node:20-alpine
+  container_name: laravel_node
+  working_dir: /var/www # igual que el contenedor app
+  volumes:
+    - .:/var/www
+  command: sh -c "npm install && npm run build" # build para producción
+  depends_on:
+    - app
+  networks:
+    - appnet
 
   queue:
     build: .
