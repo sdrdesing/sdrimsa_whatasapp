@@ -329,7 +329,7 @@ async function fetchWhatsappQr() {
                 <div class="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-slate-800 to-slate-900 p-8 mb-6">
                     <div class="flex items-center justify-between gap-4">
                         <div class="flex items-center gap-4">
-                            <img src="/logos/favicon.png" alt="logo" class="h-16 w-16 object-contain hidden sm:block" />
+                            <img src="" alt="logo" class="h-16 w-16 object-contain hidden sm:block" />
                             <div>
                                 <h1 class="text-3xl font-bold text-white">Sdrimsac WhatsApp Bot</h1>
                                 <p class="text-sm text-slate-300">Panel de Control y Gestión de Mensajes</p>
