@@ -1,7 +1,7 @@
 
 <template>
     <img
-        src="/logos/sdrimsac.png"
+        :src="logo"
         :alt="alt"
         :style="{ width: computedSize, height: computedSize }"
         class="object-contain"
@@ -22,6 +22,9 @@ export default {
         },
     },
     computed: {
+        logo() {
+            return new URL('../../public/logos/sdrimsac.png', import.meta.url).href;
+        },
         computedSize() {
             return typeof this.size === 'number' ? `${this.size}px` : this.size;
         },
