@@ -53,49 +53,44 @@ git pull origin main || echo "⚠️ Advertencia: No se pudo hacer pull"
 
 # 2.5. Construir imagen Docker PRIMERO (antes de composer)
 echo "🔨 Construyendo imagen Docker..."
-docker compose -f docker-compose.production.yml down --remove-orphans 2>/dev/null || true
-docker compose -f docker-compose.production.yml build --no-cache
+docker compose --env-file .env.production -f docker-compose.production.yml down --remove-orphans 2>/dev/null || true
+docker compose --env-file .env.production -f docker-compose.production.yml build --no-cache
 
 # 3. Levantar servicios
 echo "🚀 Levantando servicios..."
-docker compose -f docker-compose.production.yml up -d
+docker compose --env-file .env.production -f docker-compose.production.yml up -d
 
 # 3.5. Instalar dependencias PHP dentro del contenedor
 echo "📦 Instalando dependencias PHP con Composer (dentro de Docker)..."
-docker compose -f docker-compose.production.yml exec -T app composer install --no-dev --optimize-autoloader
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app composer install --no-dev --optimize-autoloader
 
 # 5. Generar APP_KEY si no existe
 echo "🔑 Configurando application key..."
-docker compose -f docker-compose.production.yml exec -T app php artisan key:generate --force
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan key:generate --force
 
-# 6. Compilar assets frontend
-echo "📦 Compilando assets frontend..."
-docker compose -f docker-compose.production.yml exec -T app npm install --legacy-peer-deps
-docker compose -f docker-compose.production.yml exec -T app npm run build
-
-# 7. Ejecutar migraciones
+# 6. Ejecutar migraciones
 echo "💾 Ejecutando migraciones de base de datos..."
-docker compose -f docker-compose.production.yml exec -T app php artisan migrate --database=central --force
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan migrate --database=central --force
 
-# 8. Limpiar y cachear configuración
+# 7. Limpiar y cachear configuración
 echo "⚙️ Optimizando aplicación..."
-docker compose -f docker-compose.production.yml exec -T app php artisan config:clear
-docker compose -f docker-compose.production.yml exec -T app php artisan config:cache
-docker compose -f docker-compose.production.yml exec -T app php artisan route:cache
-docker compose -f docker-compose.production.yml exec -T app php artisan view:cache
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan config:clear
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan config:cache
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan route:cache
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan view:cache
 
-# 9. Establecer permisos correctos
+# 8. Establecer permisos correctos
 echo "🔒 Estableciendo permisos..."
-docker compose -f docker-compose.production.yml exec -T app chown -R www-data:www-data /var/www/storage
-docker compose -f docker-compose.production.yml exec -T app chmod -R 775 /var/www/storage
-docker compose -f docker-compose.production.yml exec -T app chmod -R 775 /var/www/bootstrap/cache
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app chown -R www-data:www-data /var/www/storage
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app chmod -R 775 /var/www/storage
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app chmod -R 775 /var/www/bootstrap/cache
 
-# 10. Verificar estado
+# 9. Verificar estado
 echo ""
 echo "✅ Despliegue completado exitosamente!"
 echo ""
 echo "Estado de servicios:"
-docker compose -f docker-compose.production.yml ps
+docker compose --env-file .env.production -f docker-compose.production.yml ps
 echo ""
 echo "📍 Tu aplicación está disponible en: https://$DOMAIN"
 echo ""

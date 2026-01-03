@@ -1,5 +1,8 @@
 FROM php:8.2-fpm-alpine
 
+# Instalación de Node.js
+RUN apk add --no-cache nodejs npm
+
 # Instalación de extensiones necesarias
 RUN apk add --no-cache \
     git \
@@ -36,6 +39,9 @@ COPY . .
 
 # Instalar dependencias de PHP sin ejecutar scripts (evita problemas en build)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress --no-scripts
+
+# Instalar dependencias de Node.js y compilar assets
+RUN npm install --legacy-peer-deps && npm run build
 
 # Configurar permisos
 RUN chown -R www-data:www-data /var/www && \
