@@ -85,6 +85,13 @@ fi
 echo "📦 Instalando dependencias PHP con Composer (dentro de Docker)..."
 docker compose --env-file .env.production -f docker-compose.production.yml exec -T app composer install --no-dev --optimize-autoloader
 
+# 4. Instalar y compilar dependencias de JavaScript (Vue.js)
+echo "📦 Instalando dependencias de Node.js..."
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app npm ci
+
+echo "🔨 Compilando assets de Vue.js (Vite) para producción..."
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app npm run build
+
 # 5. Generar APP_KEY si no existe
 echo "🔑 Configurando application key..."
 docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan key:generate --force
