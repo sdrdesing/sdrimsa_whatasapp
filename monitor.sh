@@ -17,7 +17,7 @@ log_message() {
 # Verificar cada servicio
 check_service() {
     local service=$1
-    local status=$(docker-compose -f docker-compose.production.yml ps $service | grep -E "Up|Exit")
+    local status=$(docker compose -f docker-compose.production.yml ps $service | grep -E "Up|Exit")
     
     if [ -z "$status" ]; then
         log_message "❌ ALERTA: Servicio $service no está corriendo"
@@ -51,7 +51,7 @@ else
 fi
 
 # Verificar conectividad a base de datos
-DB_CHECK=$(docker-compose -f docker-compose.production.yml exec -T mysql mysql -u sdrimsac_user -p${DB_PASSWORD} -e "SELECT 1" 2>/dev/null)
+DB_CHECK=$(docker compose -f docker-compose.production.yml exec -T mysql mysql -u sdrimsac_user -p${DB_PASSWORD} -e "SELECT 1" 2>/dev/null)
 if [ $? -eq 0 ]; then
     log_message "✅ Conexión a base de datos OK"
 else

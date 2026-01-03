@@ -40,7 +40,7 @@ if [[ $BACKUP_FILE == *.gz ]]; then
 fi
 
 # Restaurar base de datos
-docker-compose -f docker-compose.production.yml exec -T mysql mysql \
+docker compose -f docker-compose.production.yml exec -T mysql mysql \
   -u sdrimsac_user -p${DB_PASSWORD} sdrimsacbot_central < "$BACKUP_FILE"
 
 if [ $? -eq 0 ]; then
@@ -55,7 +55,7 @@ fi
 
 # Limpiar caché
 echo "Limpiando caché..."
-docker-compose -f docker-compose.production.yml exec -T app php artisan cache:clear
-docker-compose -f docker-compose.production.yml exec -T app php artisan view:clear
+docker compose -f docker-compose.production.yml exec -T app php artisan cache:clear
+docker compose -f docker-compose.production.yml exec -T app php artisan view:clear
 
 echo "✅ Proceso completado"

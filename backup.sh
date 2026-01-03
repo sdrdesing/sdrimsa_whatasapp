@@ -16,7 +16,7 @@ cd $PROJECT_PATH
 
 # 1. Backup de base de datos central
 echo "📦 Backup de base de datos central..."
-docker-compose -f docker-compose.production.yml exec -T mysql mysqldump \
+docker compose -f docker-compose.production.yml exec -T mysql mysqldump \
   -u sdrimsac_user -p${DB_PASSWORD} sdrimsacbot_central \
   > $BACKUP_DIR/central_db_$DATE.sql 2>/dev/null
 

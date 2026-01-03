@@ -116,7 +116,7 @@ chmod 600 /var/www/sdrimsacbot/.env.docker
 
 ```bash
 # Detener nginx temporalmente si está corriendo
-docker-compose -f docker-compose.production.yml down 2>/dev/null || true
+docker compose -f docker-compose.production.yml down 2>/dev/null || true
 
 # Generar certificado Let's Encrypt
 certbot certonly --standalone \
@@ -134,28 +134,28 @@ certbot certonly --standalone \
 cd /var/www/sdrimsacbot
 
 # Construir imagen personalizada
-docker-compose -f docker-compose.production.yml build
+docker compose -f docker-compose.production.yml build
 
 # Iniciar servicios
-docker-compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml up -d
 
 # Ver logs
-docker-compose -f docker-compose.production.yml logs -f
+docker compose -f docker-compose.production.yml logs -f
 ```
 
 ### 8. Ejecutar Migraciones
 
 ```bash
 # Generar aplicación key
-docker-compose -f docker-compose.production.yml exec app php artisan key:generate
+docker compose -f docker-compose.production.yml exec app php artisan key:generate
 
 # Ejecutar migraciones de base de datos central
-docker-compose -f docker-compose.production.yml exec app php artisan migrate --database=central
+docker compose -f docker-compose.production.yml exec app php artisan migrate --database=central
 
 # Crear cache de configuración
-docker-compose -f docker-compose.production.yml exec app php artisan config:cache
-docker-compose -f docker-compose.production.yml exec app php artisan route:cache
-docker-compose -f docker-compose.production.yml exec app php artisan view:cache
+docker compose -f docker-compose.production.yml exec app php artisan config:cache
+docker compose -f docker-compose.production.yml exec app php artisan route:cache
+docker compose -f docker-compose.production.yml exec app php artisan view:cache
 ```
 
 ### 9. Configurar Auto-renovación de SSL
@@ -165,7 +165,7 @@ docker-compose -f docker-compose.production.yml exec app php artisan view:cache
 cat > /etc/letsencrypt/renewal-hooks/post/docker-reload.sh << 'EOF'
 #!/bin/bash
 cd /var/www/sdrimsacbot
-docker-compose -f docker-compose.production.yml exec -T nginx nginx -s reload
+docker compose -f docker-compose.production.yml exec -T nginx nginx -s reload
 EOF
 
 chmod +x /etc/letsencrypt/renewal-hooks/post/docker-reload.sh
@@ -207,7 +207,7 @@ certbot renew --dry-run  # Probar primero
 
 ```bash
 # Ejecutar desde dentro del contenedor
-docker-compose -f docker-compose.production.yml exec app php artisan tinker
+docker compose -f docker-compose.production.yml exec app php artisan tinker
 
 # Dentro de tinker:
 $tenant = \App\Models\Tenant::create(['id' => 'tu-primer-tenant']);
@@ -218,7 +218,7 @@ exit;
 O crear mediante script artisan si lo tienes:
 
 ```bash
-docker-compose -f docker-compose.production.yml exec app php artisan tenant:create tu-primer-tenant tenant1.sdrimsac.xyz
+docker compose -f docker-compose.production.yml exec app php artisan tenant:create tu-primer-tenant tenant1.sdrimsac.xyz
 ```
 
 ---
@@ -231,29 +231,29 @@ docker-compose -f docker-compose.production.yml exec app php artisan tenant:crea
 cd /var/www/sdrimsacbot
 
 # Ver estado de servicios
-docker-compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.production.yml ps
 
 # Ver logs
-docker-compose -f docker-compose.production.yml logs -f app
-docker-compose -f docker-compose.production.yml logs -f nginx
-docker-compose -f docker-compose.production.yml logs -f mysql
+docker compose -f docker-compose.production.yml logs -f app
+docker compose -f docker-compose.production.yml logs -f nginx
+docker compose -f docker-compose.production.yml logs -f mysql
 
 # Acceder a consola artisan
-docker-compose -f docker-compose.production.yml exec app php artisan tinker
+docker compose -f docker-compose.production.yml exec app php artisan tinker
 
 # Restart de servicios
-docker-compose -f docker-compose.production.yml restart app
-docker-compose -f docker-compose.production.yml restart nginx
+docker compose -f docker-compose.production.yml restart app
+docker compose -f docker-compose.production.yml restart nginx
 
 # Detener servicios
-docker-compose -f docker-compose.production.yml down
+docker compose -f docker-compose.production.yml down
 ```
 
 ### Copias de Seguridad
 
 ```bash
 # Backup de base de datos
-docker-compose -f docker-compose.production.yml exec mysql mysqldump \
+docker compose -f docker-compose.production.yml exec mysql mysqldump \
   -u sdrimsac_user -p sdrimsacbot_central > /backups/db_$(date +%Y%m%d_%H%M%S).sql
 
 # Backup de volúmenes

@@ -19,7 +19,7 @@ echo "Nombre: $TENANT_NAME"
 echo "Dominio: $TENANT_DOMAIN"
 
 # Crear tenant usando tinker
-docker-compose -f docker-compose.production.yml exec -T app php artisan tinker << EOF
+docker compose -f docker-compose.production.yml exec -T app php artisan tinker << EOF
 \$tenant = \App\Models\Tenant::create(['id' => '$TENANT_NAME']);
 \$tenant->domains()->create(['domain' => '$TENANT_DOMAIN']);
 echo "✅ Tenant creado exitosamente\n";
@@ -31,7 +31,7 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "📝 Próximos pasos:"
     echo "1. Ejecutar migraciones del tenant:"
-    echo "   docker-compose -f docker-compose.production.yml exec app php artisan migrate --tenants=$TENANT_NAME"
+    echo "   docker compose -f docker-compose.production.yml exec app php artisan migrate --tenants=$TENANT_NAME"
     echo ""
     echo "2. Agregar dominio al DNS:"
     echo "   $TENANT_DOMAIN -> IP_DEL_VPS"

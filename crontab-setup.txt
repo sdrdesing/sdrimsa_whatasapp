@@ -12,13 +12,13 @@
 */5 * * * * cd /var/www/sdrimsacbot && bash monitor.sh
 
 # Limpiar logs de Laravel diarios
-0 3 * * * docker-compose -f /var/www/sdrimsacbot/docker-compose.production.yml exec -T app php artisan logs:clear
+0 3 * * * docker compose -f /var/www/sdrimsacbot/docker-compose.production.yml exec -T app php artisan logs:clear
 
 # Limpiar cache temporales
-0 4 * * * docker-compose -f /var/www/sdrimsacbot/docker-compose.production.yml exec -T app php artisan cache:clear
+0 4 * * * docker compose -f /var/www/sdrimsacbot/docker-compose.production.yml exec -T app php artisan cache:clear
 
 # Renovación de certificados SSL (Let's Encrypt lo hace automáticamente, esto es adicional)
-0 1 * * * certbot renew --quiet --no-eff-email --deploy-hook "docker-compose -f /var/www/sdrimsacbot/docker-compose.production.yml exec -T nginx nginx -s reload"
+0 1 * * * certbot renew --quiet --no-eff-email --deploy-hook "docker compose -f /var/www/sdrimsacbot/docker-compose.production.yml exec -T nginx nginx -s reload"
 
 # Para verificar crontabs configurados:
 # crontab -l

@@ -18,32 +18,32 @@ cd /var/www/sdrimsacbot
 ### Iniciar servicios
 
 ```bash
-docker-compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml up -d
 ```
 
 ### Detener servicios
 
 ```bash
-docker-compose -f docker-compose.production.yml down
+docker compose -f docker-compose.production.yml down
 ```
 
 ### Reiniciar servicios
 
 ```bash
 # Todos los servicios
-docker-compose -f docker-compose.production.yml restart
+docker compose -f docker-compose.production.yml restart
 
 # Servicio específico
-docker-compose -f docker-compose.production.yml restart app
-docker-compose -f docker-compose.production.yml restart nginx
-docker-compose -f docker-compose.production.yml restart mysql
-docker-compose -f docker-compose.production.yml restart redis
+docker compose -f docker-compose.production.yml restart app
+docker compose -f docker-compose.production.yml restart nginx
+docker compose -f docker-compose.production.yml restart mysql
+docker compose -f docker-compose.production.yml restart redis
 ```
 
 ### Ver estado de servicios
 
 ```bash
-docker-compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.production.yml ps
 ```
 
 ---
@@ -54,18 +54,18 @@ docker-compose -f docker-compose.production.yml ps
 
 ```bash
 # Todos los servicios
-docker-compose -f docker-compose.production.yml logs -f
+docker compose -f docker-compose.production.yml logs -f
 
 # Servicio específico
-docker-compose -f docker-compose.production.yml logs -f app
-docker-compose -f docker-compose.production.yml logs -f nginx
-docker-compose -f docker-compose.production.yml logs -f mysql
+docker compose -f docker-compose.production.yml logs -f app
+docker compose -f docker-compose.production.yml logs -f nginx
+docker compose -f docker-compose.production.yml logs -f mysql
 
 # Últimas 50 líneas
-docker-compose -f docker-compose.production.yml logs --tail=50 app
+docker compose -f docker-compose.production.yml logs --tail=50 app
 
 # Últimas 100 líneas de error
-docker-compose -f docker-compose.production.yml logs --tail=100 app | grep -i error
+docker compose -f docker-compose.production.yml logs --tail=100 app | grep -i error
 ```
 
 ---
@@ -75,7 +75,7 @@ docker-compose -f docker-compose.production.yml logs --tail=100 app | grep -i er
 ### Acceder a consola MySQL
 
 ```bash
-docker-compose -f docker-compose.production.yml exec mysql mysql -u sdrimsac_user -p sdrimsacbot_central
+docker compose -f docker-compose.production.yml exec mysql mysql -u sdrimsac_user -p sdrimsacbot_central
 # Ingresa la contraseña cuando se pida
 ```
 
@@ -83,16 +83,16 @@ docker-compose -f docker-compose.production.yml exec mysql mysql -u sdrimsac_use
 
 ```bash
 # Base de datos central
-docker-compose -f docker-compose.production.yml exec app php artisan migrate --database=central
+docker compose -f docker-compose.production.yml exec app php artisan migrate --database=central
 
 # Todos los tenants
-docker-compose -f docker-compose.production.yml exec app php artisan migrate --tenants
+docker compose -f docker-compose.production.yml exec app php artisan migrate --tenants
 ```
 
 ### Hacer backup de BD
 
 ```bash
-docker-compose -f docker-compose.production.yml exec mysql mysqldump \
+docker compose -f docker-compose.production.yml exec mysql mysqldump \
   -u sdrimsac_user -p sdrimsacbot_central > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
@@ -103,34 +103,34 @@ docker-compose -f docker-compose.production.yml exec mysql mysqldump \
 ### Acceder a Tinker (consola interactiva)
 
 ```bash
-docker-compose -f docker-compose.production.yml exec app php artisan tinker
+docker compose -f docker-compose.production.yml exec app php artisan tinker
 ```
 
 ### Limpiar caché
 
 ```bash
 # Limpiar todo
-docker-compose -f docker-compose.production.yml exec app php artisan cache:clear
-docker-compose -f docker-compose.production.yml exec app php artisan view:clear
-docker-compose -f docker-compose.production.yml exec app php artisan route:clear
-docker-compose -f docker-compose.production.yml exec app php artisan config:clear
+docker compose -f docker-compose.production.yml exec app php artisan cache:clear
+docker compose -f docker-compose.production.yml exec app php artisan view:clear
+docker compose -f docker-compose.production.yml exec app php artisan route:clear
+docker compose -f docker-compose.production.yml exec app php artisan config:clear
 
 # Cachear para producción
-docker-compose -f docker-compose.production.yml exec app php artisan config:cache
-docker-compose -f docker-compose.production.yml exec app php artisan route:cache
-docker-compose -f docker-compose.production.yml exec app php artisan view:cache
+docker compose -f docker-compose.production.yml exec app php artisan config:cache
+docker compose -f docker-compose.production.yml exec app php artisan route:cache
+docker compose -f docker-compose.production.yml exec app php artisan view:cache
 ```
 
 ### Listar rutas
 
 ```bash
-docker-compose -f docker-compose.production.yml exec app php artisan route:list
+docker compose -f docker-compose.production.yml exec app php artisan route:list
 ```
 
 ### Ver variables de entorno
 
 ```bash
-docker-compose -f docker-compose.production.yml exec app php artisan config:show app
+docker compose -f docker-compose.production.yml exec app php artisan config:show app
 ```
 
 ---
@@ -144,7 +144,7 @@ docker-compose -f docker-compose.production.yml exec app php artisan config:show
 bash create-tenant.sh cliente1 cliente1.sdrimsac.xyz
 
 # Opción 2: Manualmente con Tinker
-docker-compose -f docker-compose.production.yml exec app php artisan tinker
+docker compose -f docker-compose.production.yml exec app php artisan tinker
 # Dentro de Tinker:
 $t = \App\Models\Tenant::create(['id' => 'cliente1']);
 $t->domains()->create(['domain' => 'cliente1.sdrimsac.xyz']);
@@ -154,7 +154,7 @@ exit;
 ### Listar tenants
 
 ```bash
-docker-compose -f docker-compose.production.yml exec app php artisan tinker
+docker compose -f docker-compose.production.yml exec app php artisan tinker
 # Dentro de Tinker:
 \App\Models\Tenant::all()->toArray();
 exit;
@@ -245,16 +245,16 @@ bash deploy.sh
 ```bash
 cd /var/www/sdrimsacbot
 git pull origin main
-docker-compose -f docker-compose.production.yml exec app composer install --no-dev --optimize-autoloader
-docker-compose -f docker-compose.production.yml exec app php artisan migrate
-docker-compose -f docker-compose.production.yml exec app php artisan cache:clear
+docker compose -f docker-compose.production.yml exec app composer install --no-dev --optimize-autoloader
+docker compose -f docker-compose.production.yml exec app php artisan migrate
+docker compose -f docker-compose.production.yml exec app php artisan cache:clear
 ```
 
 ### Rebuildar imagen Docker
 
 ```bash
-docker-compose -f docker-compose.production.yml build --no-cache
-docker-compose -f docker-compose.production.yml restart app
+docker compose -f docker-compose.production.yml build --no-cache
+docker compose -f docker-compose.production.yml restart app
 ```
 
 ---
@@ -325,34 +325,34 @@ docker-compose -f docker-compose.production.yml exec mysql mysql --version
 
 ```bash
 # 1. Verificar servicios están corriendo
-docker-compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.production.yml ps
 
 # 2. Ver logs
-docker-compose -f docker-compose.production.yml logs app | tail -50
+docker compose -f docker-compose.production.yml logs app | tail -50
 
 # 3. Reiniciar
-docker-compose -f docker-compose.production.yml restart app nginx
+docker compose -f docker-compose.production.yml restart app nginx
 ```
 
 ### Error 502 Bad Gateway
 
 ```bash
 # Significa que Nginx no puede conectar a PHP
-docker-compose -f docker-compose.production.yml logs app
-docker-compose -f docker-compose.production.yml restart app
+docker compose -f docker-compose.production.yml logs app
+docker compose -f docker-compose.production.yml restart app
 ```
 
 ### Error de base de datos
 
 ```bash
 # Verificar MySQL está corriendo
-docker-compose -f docker-compose.production.yml logs mysql
+docker compose -f docker-compose.production.yml logs mysql
 
 # Reiniciar MySQL
-docker-compose -f docker-compose.production.yml restart mysql
+docker compose -f docker-compose.production.yml restart mysql
 
 # Verificar conexión
-docker-compose -f docker-compose.production.yml exec app \
+docker compose -f docker-compose.production.yml exec app \
   php artisan tinker -c "DB::connection()->getPdo()"
 ```
 

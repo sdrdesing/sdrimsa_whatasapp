@@ -183,10 +183,10 @@ Bookmark: COMANDOS-RAPIDOS.md
 ### Desde el VPS
 ```bash
 # Ver estado de servicios
-docker-compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.production.yml ps
 
 # Ver logs en tiempo real
-docker-compose -f docker-compose.production.yml logs -f app
+docker compose -f docker-compose.production.yml logs -f app
 
 # Crear nuevo tenant
 bash create-tenant.sh cliente1 cliente1.sdrimsac.xyz
