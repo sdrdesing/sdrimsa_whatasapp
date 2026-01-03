@@ -16,15 +16,9 @@ export default defineConfig(({ mode }) => ({
         manifest: true,
         rollupOptions: {
             input: 'resources/js/app.js',
+            external: ['/logos/sdrimsac.png'],
             output: {
                 dir: 'public/build',
-            },
-            onwarn(warning, warn) {
-                // Ignorar advertencias sobre rutas de /public
-                if (warning.message.includes('failed to resolve import')) {
-                    return;
-                }
-                warn(warning);
             },
         },
     },
