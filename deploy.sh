@@ -29,7 +29,7 @@ if [ ! -f ".env.production" ]; then
     sed -i 's/DB_HOST=127.0.0.1/DB_HOST=sdrimsacbot-mysql/' .env.production
     sed -i 's/DB_USERNAME=root/DB_USERNAME=sdrimsac/' .env.production
     sed -i 's/DB_PASSWORD=/DB_PASSWORD=Sdrimsac@2025!/' .env.production
-    sed -i 's/DB_DATABASE=laravel/DB_DATABASE=sdrimsacbot_central/' .env.production
+    sed -i 's/DB_DATABASE=sdrismacbot/DB_DATABASE=sdrimsacbot/' .env.production
     sed -i 's/REDIS_HOST=127.0.0.1/REDIS_HOST=sdrimsacbot-redis/' .env.production
     sed -i 's/CACHE_DRIVER=file/CACHE_DRIVER=redis/' .env.production
     sed -i 's/QUEUE_CONNECTION=sync/QUEUE_CONNECTION=redis/' .env.production
@@ -60,26 +60,28 @@ docker compose --env-file .env.production -f docker-compose.production.yml build
 echo "🚀 Levantando servicios..."
 docker compose --env-file .env.production -f docker-compose.production.yml up -d
 
-# 3.3. Esperar a que MySQL esté listo
-echo "⏳ Esperando a que MySQL esté listo..."
+# 3.5. Esperar a que MySQL esté completamente listo para conexiones
+echo "⏳ Esperando a que MySQL esté completamente listo para conexiones..."
 MYSQL_CONTAINER="sdrimsacbot-mysql"
-for i in {1..60}; do
-    if docker exec $MYSQL_CONTAINER mysql -uroot -proot -e "SELECT 1" &> /dev/null; then
+for i in {1..90}; do
+    if docker exec $MYSQL_CONTAINER mariadb-admin -uroot -proot ping &> /dev/null; then
         echo "✓ MySQL está listo"
         break
     fi
-    echo "  Intento $i/60..."
+    if [ $((i % 10)) -eq 0 ]; then
+        echo "  Intento $i/90..."
+    fi
     sleep 2
 done
 
 # Verificar si MySQL respondió
-if [ $i -eq 60 ]; then
-    echo "❌ Error: MySQL no respondió después de 2 minutos"
+if [ $i -eq 90 ]; then
+    echo "❌ Error: MySQL no respondió después de 3 minutos"
     echo "Verifica los logs: docker logs sdrimsacbot-mysql"
     exit 1
 fi
 
-# 3.5. Instalar dependencias PHP dentro del contenedor
+# 3.7. Instalar dependencias PHP dentro del contenedor
 echo "📦 Instalando dependencias PHP con Composer (dentro de Docker)..."
 docker compose --env-file .env.production -f docker-compose.production.yml exec -T app composer install --no-dev --optimize-autoloader
 
@@ -87,9 +89,14 @@ docker compose --env-file .env.production -f docker-compose.production.yml exec 
 echo "🔑 Configurando application key..."
 docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan key:generate --force
 
+# 5.5. Limpiar configuración antes de ejecutar migraciones
+echo "🧹 Limpiando configuración cacheada..."
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan config:clear
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan cache:clear
+
 # 6. Ejecutar migraciones
 echo "💾 Ejecutando migraciones de base de datos..."
-docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan migrate --database=central --force
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app php artisan migrate --force
 
 # 7. Limpiar y cachear configuración
 echo "⚙️ Optimizando aplicación..."
