@@ -62,14 +62,22 @@ docker compose --env-file .env.production -f docker-compose.production.yml up -d
 
 # 3.3. Esperar a que MySQL esté listo
 echo "⏳ Esperando a que MySQL esté listo..."
-for i in {1..30}; do
-    if docker compose --env-file .env.production -f docker-compose.production.yml exec -T mysql mysql -uroot -p${DB_ROOT_PASSWORD} -e "SELECT 1" &> /dev/null; then
+MYSQL_CONTAINER="sdrimsacbot-mysql"
+for i in {1..60}; do
+    if docker exec $MYSQL_CONTAINER mysql -uroot -proot -e "SELECT 1" &> /dev/null; then
         echo "✓ MySQL está listo"
         break
     fi
-    echo "  Intento $i/30..."
+    echo "  Intento $i/60..."
     sleep 2
 done
+
+# Verificar si MySQL respondió
+if [ $i -eq 60 ]; then
+    echo "❌ Error: MySQL no respondió después de 2 minutos"
+    echo "Verifica los logs: docker logs sdrimsacbot-mysql"
+    exit 1
+fi
 
 # 3.5. Instalar dependencias PHP dentro del contenedor
 echo "📦 Instalando dependencias PHP con Composer (dentro de Docker)..."
