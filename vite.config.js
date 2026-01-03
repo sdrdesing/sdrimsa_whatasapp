@@ -19,6 +19,13 @@ export default defineConfig(({ mode }) => ({
             output: {
                 dir: 'public/build',
             },
+            onwarn(warning, warn) {
+                // Ignorar advertencias sobre rutas de /public
+                if (warning.message.includes('failed to resolve import')) {
+                    return;
+                }
+                warn(warning);
+            },
         },
     },
     base: '/build/',
