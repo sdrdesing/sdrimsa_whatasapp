@@ -28,7 +28,7 @@ if [ ! -f ".env.production" ]; then
     sed -i 's|APP_URL=http://localhost|APP_URL=https://sdrimsac.xyz|' .env.production
     sed -i 's/DB_HOST=127.0.0.1/DB_HOST=sdrimsacbot-mysql/' .env.production
     sed -i 's/DB_USERNAME=root/DB_USERNAME=sdrimsac/' .env.production
-    sed -i 's/DB_PASSWORD=/DB_PASSWORD=Sdrimsac@2025!/' .env.production
+    sed -i 's/DB_PASSWORD=/DB_PASSWORD=Sdrimsac@2026!/' .env.production
     sed -i 's/DB_DATABASE=sdrismacbot/DB_DATABASE=sdrimsacbot/' .env.production
     sed -i 's/REDIS_HOST=127.0.0.1/REDIS_HOST=sdrimsacbot-redis/' .env.production
     sed -i 's/CACHE_DRIVER=file/CACHE_DRIVER=redis/' .env.production
