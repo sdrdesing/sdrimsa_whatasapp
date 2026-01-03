@@ -1,7 +1,7 @@
 
 <template>
     <img
-        :src="logo"
+        src="/logos/sdrimsac.png"
         :alt="alt"
         :style="{ width: computedSize, height: computedSize }"
         class="object-contain"
@@ -9,14 +9,7 @@
 </template>
 
 <script>
-import logo from '/logos/sdrimsac.png?url';
-
 export default {
-    data() {
-        return {
-            logo,
-        };
-    },
     props: {
         // size can be a number (pixels) or any valid CSS size string (e.g. '4rem', '100px')
         size: {

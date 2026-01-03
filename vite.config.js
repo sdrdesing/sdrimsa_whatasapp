@@ -19,6 +19,13 @@ export default defineConfig(({ mode }) => ({
             output: {
                 dir: 'public/build',
             },
+            onwarn(warning, warn) {
+                // Ignorar advertencia sobre rutas estáticas en public/
+                if (warning.code === 'UNRESOLVED_IMPORT' && warning.id && warning.id.includes('/logos/')) {
+                    return;
+                }
+                warn(warning);
+            },
         },
     },
     base: '/build/',
