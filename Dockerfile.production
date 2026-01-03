@@ -17,7 +17,10 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     mysql-client \
     supervisor \
-    oniguruma-dev
+    oniguruma-dev \
+    autoconf \
+    g++ \
+    make
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install \
@@ -29,9 +32,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
     gd \
     bcmath
 
-# Instalar Redis
-RUN apk add --no-cache redis && \
-    pecl install redis && \
+# Instalar Redis con pecl
+RUN pecl install redis && \
     docker-php-ext-enable redis
 
 # Composer
