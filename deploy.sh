@@ -17,6 +17,36 @@ if [ ! -f "docker-compose.production.yml" ]; then
     exit 1
 fi
 
+# 1.5. Crear .env.production si no existe
+if [ ! -f ".env.production" ]; then
+    echo "📝 Creando archivo .env.production..."
+    cp .env.example .env.production
+    
+    # Actualizar valores para producción
+    sed -i 's/APP_ENV=local/APP_ENV=production/' .env.production
+    sed -i 's/APP_DEBUG=true/APP_DEBUG=false/' .env.production
+    sed -i 's|APP_URL=http://localhost|APP_URL=https://sdrimsac.xyz|' .env.production
+    sed -i 's/DB_HOST=127.0.0.1/DB_HOST=mysql/' .env.production
+    sed -i 's/DB_USERNAME=root/DB_USERNAME=sdrimsac_user/' .env.production
+    sed -i 's/DB_PASSWORD=/DB_PASSWORD=ChangeMeToSecurePassword123!/' .env.production
+    sed -i 's/DB_DATABASE=laravel/DB_DATABASE=sdrimsacbot_central/' .env.production
+    sed -i 's/REDIS_HOST=127.0.0.1/REDIS_HOST=redis/' .env.production
+    sed -i 's/CACHE_DRIVER=file/CACHE_DRIVER=redis/' .env.production
+    sed -i 's/QUEUE_CONNECTION=sync/QUEUE_CONNECTION=redis/' .env.production
+    
+    # Agregar DB_ROOT_PASSWORD si no existe
+    if ! grep -q "DB_ROOT_PASSWORD" .env.production; then
+        echo "DB_ROOT_PASSWORD=RootSecurePassword123!" >> .env.production
+    fi
+    
+    echo "⚠️ IMPORTANTE: Edita .env.production con contraseñas seguras:"
+    echo "   nano .env.production"
+    echo "   Especialmente: DB_PASSWORD, DB_ROOT_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD"
+    echo ""
+    echo "⏸️ Pausando 30 segundos para que puedas editar el archivo..."
+    sleep 30
+fi
+
 # 2. Pull de cambios del repositorio
 echo "📥 Obteniendo últimos cambios del repositorio..."
 git pull origin main || echo "⚠️ Advertencia: No se pudo hacer pull"
