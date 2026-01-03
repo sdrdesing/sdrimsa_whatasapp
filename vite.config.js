@@ -16,7 +16,6 @@ export default defineConfig(({ mode }) => ({
         manifest: true,
         rollupOptions: {
             input: 'resources/js/app.js',
-            external: ['/logos/sdrimsac.png'],
             output: {
                 dir: 'public/build',
             },
