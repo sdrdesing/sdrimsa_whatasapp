@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import logo from '../../images/logos/sdrimsac.png';
+import logo from '/logos/sdrimsac.png?url';
 
 export default {
     data() {
