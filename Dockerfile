@@ -6,6 +6,10 @@ RUN apt-get update && apt-get install -y \
     libzip-dev zip curl \
     && docker-php-ext-install pdo_mysql mbstring zip exif pcntl
 
+# Instalar Redis
+RUN pecl install redis && \
+    docker-php-ext-enable redis
+
 # Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
