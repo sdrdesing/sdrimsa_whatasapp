@@ -16,6 +16,9 @@ export default defineConfig(({ mode }) => ({
         manifest: true,
         rollupOptions: {
             input: 'resources/js/app.js',
+            output: {
+                dir: 'public/build',
+            },
         },
     },
     base: '/build/',
