@@ -43,7 +43,7 @@ services:
     container_name: sdrimsacbot-mysql
     restart: always
     environment:
-      MYSQL_DATABASE: sdrimsacbot_central
+      MYSQL_DATABASE: sdrimsacbot
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
