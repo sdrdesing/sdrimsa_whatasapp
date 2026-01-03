@@ -163,13 +163,13 @@ exit;
 ### Ejecutar comando para tenant específico
 
 ```bash
-docker-compose -f docker-compose.production.yml exec app php artisan migrate --tenants=cliente1
+docker compose -f docker-compose.production.yml exec app php artisan migrate --tenants=cliente1
 ```
 
 ### Eliminar tenant
 
 ```bash
-docker-compose -f docker-compose.production.yml exec app php artisan tinker
+docker compose -f docker-compose.production.yml exec app php artisan tinker
 # Dentro de Tinker:
 $t = \App\Models\Tenant::find('cliente1');
 $t->delete(); // Esto eliminará el tenant y su BD
@@ -287,10 +287,10 @@ bash restore.sh /backups/sdrimsacbot/central_db_20260103_120000.sql.gz
 
 ```bash
 # Logs del sistema
-docker-compose -f docker-compose.production.yml exec app php artisan logs:clear
+docker compose -f docker-compose.production.yml exec app php artisan logs:clear
 
 # Logs de nginx
-docker-compose -f docker-compose.production.yml exec nginx sh -c "rm -f /var/log/nginx/*old*"
+docker compose -f docker-compose.production.yml exec nginx sh -c "rm -f /var/log/nginx/*old*"
 ```
 
 ### Limpiar espacio sin usar (CUIDADO)
@@ -312,9 +312,9 @@ docker system prune
 ### Ver versiones de servicios
 
 ```bash
-docker-compose -f docker-compose.production.yml exec app php -v
-docker-compose -f docker-compose.production.yml exec app php artisan --version
-docker-compose -f docker-compose.production.yml exec mysql mysql --version
+docker compose -f docker-compose.production.yml exec app php -v
+docker compose -f docker-compose.production.yml exec app php artisan --version
+docker compose -f docker-compose.production.yml exec mysql mysql --version
 ```
 
 ---
@@ -360,10 +360,10 @@ docker compose -f docker-compose.production.yml exec app \
 
 ```bash
 # Arreglar permisos de almacenamiento
-docker-compose -f docker-compose.production.yml exec app \
+docker compose -f docker-compose.production.yml exec app \
   chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-docker-compose -f docker-compose.production.yml exec app \
+docker compose -f docker-compose.production.yml exec app \
   chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 ```
 
@@ -371,10 +371,10 @@ docker-compose -f docker-compose.production.yml exec app \
 
 ```bash
 # Ver cola
-docker-compose -f docker-compose.production.yml exec app php artisan queue:failed
+docker compose -f docker-compose.production.yml exec app php artisan queue:failed
 
 # Procesar queue
-docker-compose -f docker-compose.production.yml exec app php artisan queue:work redis --timeout=0
+docker compose -f docker-compose.production.yml exec app php artisan queue:work redis --timeout=0
 ```
 
 ---

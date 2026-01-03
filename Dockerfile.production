@@ -6,7 +6,6 @@ RUN apk add --no-cache \
     unzip \
     curl \
     libpng-dev \
-    libonig-dev \
     libxml2-dev \
     libzip-dev \
     zip \
@@ -14,7 +13,8 @@ RUN apk add --no-cache \
     freetype-dev \
     libjpeg-turbo-dev \
     mysql-client \
-    supervisor
+    supervisor \
+    oniguruma-dev
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install \
