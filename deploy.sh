@@ -62,8 +62,14 @@ docker compose --env-file .env.production -f docker-compose.production.yml up -d
 
 # 3.3. Esperar a que MySQL esté listo
 echo "⏳ Esperando a que MySQL esté listo..."
-sleep 15
-docker compose --env-file .env.production -f docker-compose.production.yml exec -T mysql mysqladmin ping -uroot -p${DB_ROOT_PASSWORD} --silent || sleep 10
+for i in {1..30}; do
+    if docker compose --env-file .env.production -f docker-compose.production.yml exec -T mysql mysql -uroot -p${DB_ROOT_PASSWORD} -e "SELECT 1" &> /dev/null; then
+        echo "✓ MySQL está listo"
+        break
+    fi
+    echo "  Intento $i/30..."
+    sleep 2
+done
 
 # 3.5. Instalar dependencias PHP dentro del contenedor
 echo "📦 Instalando dependencias PHP con Composer (dentro de Docker)..."

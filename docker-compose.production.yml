@@ -44,9 +44,9 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: sdrimsacbot
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: sdrimsac
+      MYSQL_PASSWORD: Sdrimsac@2025!
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
