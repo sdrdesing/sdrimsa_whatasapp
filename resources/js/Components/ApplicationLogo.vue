@@ -23,6 +23,7 @@ export default {
     },
     computed: {
         logo() {
+            // @vite-ignore
             return new URL('../../public/logos/sdrimsac.png', import.meta.url).href;
         },
         computedSize() {
