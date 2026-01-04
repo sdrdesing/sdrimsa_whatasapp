@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Stancl\Tenancy\Database\Models\Domain;
 use Illuminate\Support\Facades\Artisan;
@@ -45,24 +46,39 @@ class TenantController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'id' => 'required',
-        ]);
-        $tenant = Tenant::create([
-            'id' => $request->id,
-        ]);
-        $dominBase = parse_url(env('APP_URL'), PHP_URL_HOST) ?: 'localhost';
-        $tenant->domains()->create([
-            'domain' => $request->id . '.' . $dominBase,
-        ]);
-
-        $tenant->run(function () {
-            Artisan::call('db:seed', [
-                '--class' => \Database\Seeders\TenantSeeder::class,
+        try {
+            $request->validate([
+                'id' => 'required|unique:tenants,id',
             ]);
-        });
+            
+            $tenant = Tenant::create([
+                'id' => $request->id,
+            ]);
+            
+            $dominBase = parse_url(env('APP_URL'), PHP_URL_HOST) ?: 'localhost';
+            $tenant->domains()->create([
+                'domain' => $request->id . '.' . $dominBase,
+            ]);
 
-        return redirect()->route('tenants.index');
+            // Ejecutar migraciones primero
+            $tenant->run(function () {
+                Artisan::call('migrate', [
+                    '--force' => true,
+                ]);
+            });
+
+            // Luego ejecutar seeders
+            $tenant->run(function () {
+                Artisan::call('db:seed', [
+                    '--class' => \Database\Seeders\TenantSeeder::class,
+                ]);
+            });
+
+            return redirect()->route('tenants.index')->with('success', "Tenant '{$request->id}' creado exitosamente");
+        } catch (\Exception $e) {
+            Log::error('Error creando tenant: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Error al crear el tenant: ' . $e->getMessage()]);
+        }
     }
 
     /**
