@@ -60,19 +60,8 @@ class TenantController extends Controller
                 'domain' => $request->id . '.' . $dominBase,
             ]);
 
-            // Ejecutar migraciones primero
-            $tenant->run(function () {
-                Artisan::call('migrate', [
-                    '--force' => true,
-                ]);
-            });
-
-            // Luego ejecutar seeders
-            $tenant->run(function () {
-                Artisan::call('db:seed', [
-                    '--class' => \Database\Seeders\TenantSeeder::class,
-                ]);
-            });
+            // Las migraciones y seeders se ejecutarán automáticamente
+            // a través del JobPipeline en TenantCreated event
 
             return redirect()->route('tenants.index')->with('success', "Tenant '{$request->id}' creado exitosamente");
         } catch (\Exception $e) {
