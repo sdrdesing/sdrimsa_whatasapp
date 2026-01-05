@@ -67,6 +67,28 @@ services:
       - appnet
     command: redis-server --appendonly yes
 
+  # Servicio Socket.IO para Baileys Bot
+  socket:
+    image: node:20-alpine
+    container_name: sdrimsacbot-socket
+    restart: always
+    working_dir: /app
+    volumes:
+      - /var/www/sdrimsacbot/modules/whatsapp:/app
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_HOST=sdrimsacbot-redis
+      - REDIS_PORT=6379
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - redis
+      - app
+    networks:
+      - appnet
+    command: sh -c "npm install && node server.js"
+
   scheduler:
     build:
       context: .
