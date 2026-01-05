@@ -74,10 +74,36 @@
                         </button>
                     </div>
 
-                    <div v-if="errors.message" class="rounded-md bg-red-50 dark:bg-red-900 p-4">
-                        <p class="text-sm text-red-800 dark:text-red-200">
-                            {{ errors.message }}
-                        </p>
+                    <!-- Alerta de error general -->
+                    <div v-if="errors.message || generalError" class="rounded-md bg-red-50 dark:bg-red-900 p-4 border border-red-200 dark:border-red-700">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-red-800 dark:text-red-100">
+                                    {{ errors.message || generalError }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de credenciales inválidas -->
+                    <div v-if="errors.login_failed" class="rounded-md bg-yellow-50 dark:bg-yellow-900 p-4 border border-yellow-200 dark:border-yellow-700">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-yellow-800 dark:text-yellow-100">
+                                    El correo o contraseña son incorrectos. Intenta de nuevo.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -98,18 +124,70 @@ const form = useForm({
 
 const loading = ref(false);
 const errors = ref({});
+const generalError = ref('');
+
+// Validar formato del email
+const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+};
+
+// Validar antes de enviar
+const validateForm = () => {
+    generalError.value = '';
+    const newErrors = {};
+
+    // Validar email
+    if (!form.email.trim()) {
+        newErrors.email = ['El correo electrónico es requerido'];
+    } else if (!isValidEmail(form.email)) {
+        newErrors.email = ['Por favor ingresa un correo electrónico válido'];
+    }
+
+    // Validar contraseña
+    if (!form.password.trim()) {
+        newErrors.password = ['La contraseña es requerida'];
+    } else if (form.password.length < 6) {
+        newErrors.password = ['La contraseña debe tener al menos 6 caracteres'];
+    }
+
+    errors.value = newErrors;
+    return Object.keys(newErrors).length === 0;
+};
 
 const handleLogin = () => {
+    // Validar formulario primero
+    if (!validateForm()) {
+        return;
+    }
+
     loading.value = true;
     errors.value = {};
+    generalError.value = '';
 
-    router.post('/', form, {
-        onError: (errors) => {
-            errors.value = errors || {};
+    router.post('/', form.data(), {
+        onError: (serverErrors) => {
             loading.value = false;
+            
+            // Manejar errores del servidor
+            if (serverErrors && Object.keys(serverErrors).length > 0) {
+                errors.value = serverErrors;
+                
+                // Si hay error de credenciales
+                if (serverErrors.email || serverErrors.password) {
+                    generalError.value = 'Credenciales inválidas. Verifica tu correo y contraseña.';
+                } else if (serverErrors.message) {
+                    generalError.value = serverErrors.message;
+                } else if (serverErrors.login_failed) {
+                    generalError.value = 'El correo o contraseña son incorrectos. Intenta de nuevo.';
+                }
+            } else {
+                generalError.value = 'Ocurrió un error al iniciar sesión. Intenta de nuevo.';
+            }
         },
         onSuccess: () => {
             loading.value = false;
+            generalError.value = '';
         },
     });
 };

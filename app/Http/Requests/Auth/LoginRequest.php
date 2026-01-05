@@ -33,6 +33,22 @@ class LoginRequest extends FormRequest
     }
 
     /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Por favor, proporciona un correo electrónico válido.',
+            'email.string' => 'El correo electrónico debe ser texto.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.string' => 'La contraseña debe ser texto.',
+        ];
+    }
+
+    /**
      * Attempt to authenticate the request's credentials.
      *
      * @throws \Illuminate\Validation\ValidationException
@@ -45,7 +61,8 @@ class LoginRequest extends FormRequest
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'login_failed' => 'El correo o la contraseña son incorrectos. Por favor, intenta de nuevo.',
+                'email' => 'Las credenciales proporcionadas no coinciden con nuestros registros.',
             ]);
         }
 
@@ -68,10 +85,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+            'message' => 'Demasiados intentos de inicio de sesión. Por favor, intenta de nuevo en ' . ceil($seconds / 60) . ' minutos.',
         ]);
     }
 
