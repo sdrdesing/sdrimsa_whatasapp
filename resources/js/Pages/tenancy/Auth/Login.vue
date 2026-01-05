@@ -104,8 +104,8 @@ const handleLogin = () => {
     errors.value = {};
 
     router.post('/', form, {
-        onError: (page) => {
-            errors.value = page.props.errors || {};
+        onError: (errors) => {
+            errors.value = errors || {};
             loading.value = false;
         },
         onSuccess: () => {
