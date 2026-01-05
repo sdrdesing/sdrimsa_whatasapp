@@ -19,13 +19,21 @@ onMounted(async () => {
     }); */
 
     // Detectar el protocolo (http/https) y el dominio actual del tenant
-    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-    const host = window.location.host; // Incluye subdominio si existe (ej: demito.sdrimsac.xyz)
+    /* const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    const host = window.location.host;
     const socketUrl = `${protocol}//${host}`;
 
     socket = io(socketUrl, {
         path: "/socket.io",
         transports: ["websocket"],
+    }); */
+
+    const host = window.location.host; // ej: sdrimsac.xyz o demito.sdrimsac.xyz
+    const socketUrl = `${window.location.origin}`; // esto incluye protocolo + host
+
+    socket = io(socketUrl, {
+        path: "/socket.io",
+        transports: ["websocket", "polling"], // incluye polling como fallback
     });
 
 
