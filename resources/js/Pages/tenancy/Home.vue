@@ -14,9 +14,20 @@ onMounted(async () => {
     socketChannelRef.value = socketChannelValue;
     console.log('🔑 socket_channel (mount) ->', socketChannelValue);
 
-    socket = io("http://localhost:3000", {
+    /* socket = io("http://localhost:3000", {
         transports: ["polling", "websocket"],
+    }); */
+
+    // Detectar el protocolo (http/https) y el dominio actual del tenant
+    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    const host = window.location.host; // Incluye subdominio si existe (ej: demito.sdrimsac.xyz)
+    const socketUrl = `${protocol}//${host}`;
+
+    socket = io(socketUrl, {
+        path: "/socket.io",
+        transports: ["websocket"],
     });
+
 
     socket.on('connect', () => {
         console.log('🟢 Socket conectado', socket.id);
@@ -112,15 +123,15 @@ function deleteSession() {
     if (!confirm('¿Eliminar la sesión del bot? Esto requerirá volver a escanear el QR.')) return;
     window.axios.post('/whatsapp/delete-session', {
         tenantId: socketChannelRef.value || (socket ? socket.id : null),
-        
+
     })
-    .then(() => {
-        
-        //alert('Sesión eliminada. Por favor, vuelve a escanear el QR.');
-        whatsappState.value = { authenticated: false, connectionStatus: 'disconnected' };
-        qrData.value = null;
-    })
-    .catch(err => alert('Error al eliminar la sesión: ' + err.message));
+        .then(() => {
+
+            //alert('Sesión eliminada. Por favor, vuelve a escanear el QR.');
+            whatsappState.value = { authenticated: false, connectionStatus: 'disconnected' };
+            qrData.value = null;
+        })
+        .catch(err => alert('Error al eliminar la sesión: ' + err.message));
 }
 
 function clearMessageForm() {
@@ -235,15 +246,15 @@ function sendMessage() {
         // está disponible, y como fallback el id del socket.
         tenantId: socketChannelRef.value || (socket ? socket.id : null),
     })
-    .then(() => {
-        alert('Mensaje enviado correctamente.');
-        clearMessageForm();
-    })
-    .catch(err => {
-        alert('Error al enviar el mensaje: ' + (err?.response?.data?.message || err.message));
-    });
-    
-    
+        .then(() => {
+            alert('Mensaje enviado correctamente.');
+            clearMessageForm();
+        })
+        .catch(err => {
+            alert('Error al enviar el mensaje: ' + (err?.response?.data?.message || err.message));
+        });
+
+
 }
 
 async function fetchWhatsappStatus() {
@@ -397,10 +408,10 @@ async function fetchWhatsappQr() {
                             </div>
 
                             <div class="flex items-center gap-3">
-                
 
-                                <button @click="deleteSession"
-                                    class="bg-red-600 text-white px-3 py-2 rounded">Eliminar Sesión</button>
+
+                                <button @click="deleteSession" class="bg-red-600 text-white px-3 py-2 rounded">Eliminar
+                                    Sesión</button>
                             </div>
 
                             <div v-if="errorMsg" class="mt-3 text-sm text-red-400">{{ errorMsg }}</div>
