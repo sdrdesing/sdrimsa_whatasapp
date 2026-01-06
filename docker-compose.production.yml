@@ -8,6 +8,7 @@ services:
     env_file:
       - .env.production
     volumes:
+      - ./.env.production:/var/www/.env
       - /var/www/sdrimsacbot:/var/www
       - /var/www/sdrimsacbot/storage:/var/www/storage
     depends_on:
