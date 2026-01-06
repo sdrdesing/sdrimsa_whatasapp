@@ -29,7 +29,6 @@ services:
     volumes:
       - /var/www/sdrimsacbot:/var/www
       - ./docker/nginx/production.conf:/etc/nginx/conf.d/default.conf
-      # SSL será configurado cuando tengas certificados de Let's Encrypt
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - app
