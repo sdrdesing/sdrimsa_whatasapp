@@ -34,6 +34,12 @@ onMounted(async () => {
     socket = io(socketUrl, {
         path: "/socket.io",
         transports: ["websocket", "polling"], // incluye polling como fallback
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 99999,
+        secure: window.location.protocol === 'https:',
+        rejectUnauthorized: false,
     });
 
 
@@ -43,6 +49,14 @@ onMounted(async () => {
 
     socket.on('connect_error', (err) => {
         console.error('🔴 connect_error', err && err.message ? err.message : err);
+        console.error('📋 Error detalles:', err);
+    });
+
+    socket.on('disconnect', (reason) => {
+        console.log('🔌 Socket desconectado:', reason);
+        if (reason === 'io server disconnect') {
+            socket.connect();
+        }
     });
 
     // Registro de listeners ANTES de pedir start-session
