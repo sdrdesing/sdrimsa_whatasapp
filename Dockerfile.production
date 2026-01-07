@@ -58,6 +58,9 @@ RUN chown -R www-data:www-data /var/www && \
 # Crear directorios necesarios
 RUN mkdir -p /var/www/storage/logs
 
+# Copiar configuración de PHP-FPM
+COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+
 EXPOSE 9000
 
 CMD ["php-fpm"]
