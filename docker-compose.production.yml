@@ -10,16 +10,32 @@ services:
       - .env.production
     volumes:
       - ./.env.production:/var/www/.env
-      - /var/www/sdrimsacbot:/var/www
-      - /var/www/sdrimsacbot/storage:/var/www/storage
+      - ./storage:/var/www/storage
     depends_on:
       - mysql
       - redis
     networks:
       - appnet
     environment:
-      - PHP_MEMORY_LIMIT=512M
-      - PHP_MAX_EXECUTION_TIME=300
+      PHP_MEMORY_LIMIT: 512M
+      PHP_MAX_EXECUTION_TIME: 300
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: sdrimsacbot-scheduler
+    restart: always
+    env_file:
+      - .env.production
+    volumes:
+      - ./storage:/var/www/storage
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - appnet
+    command: php /var/www/artisan schedule:work
 
   nginx:
     image: nginx:alpine
@@ -37,9 +53,6 @@ services:
       - baileys
     networks:
       - appnet
-    environment:
-      - NGINX_HOST=sdrimsac.xyz
-      - NGINX_PORT=80
 
   mysql:
     image: mariadb:10.6
@@ -51,10 +64,10 @@ services:
       MYSQL_USER: sdrimsac
       MYSQL_PASSWORD: Sdrimsac@2026!
     volumes:
-    - mysql_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     networks:
-    - appnet
-    
+      - appnet
+
   redis:
     image: redis:alpine
     container_name: sdrimsacbot-redis
@@ -66,23 +79,6 @@ services:
     networks:
       - appnet
     command: redis-server --appendonly yes
-
-  scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile.production
-    container_name: sdrimsacbot-scheduler
-    restart: always
-    env_file:
-      - .env.production
-    volumes:
-      - /var/www/sdrimsacbot:/var/www
-    depends_on:
-      - mysql
-      - redis
-    networks:
-      - appnet
-    command: php /var/www/artisan schedule:work
 
   baileys:
     image: node:20-alpine
@@ -97,7 +93,7 @@ services:
       - appnet
     command: sh -c "npm install --production && npm start"
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
 
 volumes:
   mysql_data:
