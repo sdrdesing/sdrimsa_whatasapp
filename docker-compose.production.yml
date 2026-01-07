@@ -55,7 +55,7 @@ services:
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     networks:
       - appnet
-    command: --default-authentication-plugin=mysql_native_password
+    command: --default-authentication-plugin=mysql_native_password --max_connections=100 --innodb_buffer_pool_size=256M
 
   redis:
     image: redis:alpine
