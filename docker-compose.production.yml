@@ -89,9 +89,9 @@ services:
     image: node:20-alpine
     container_name: baileys-bot-prod
     restart: always
-    working_dir: /var/www/baileys-bot
+    working_dir: /var/www/sdrimsacbot/baileys-bot
     volumes:
-      - /var/www/sdrimsacbot/baileys-bot:/var/www/baileys-bot
+      - /var/www/sdrimsacbot/baileys-bot:/var/www/sdrimsacbot/baileys-bot
     depends_on:
       - redis
     networks:
