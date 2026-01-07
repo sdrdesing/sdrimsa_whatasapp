@@ -30,12 +30,29 @@ docker-compose -f docker-compose.production.yml build --no-cache
 # 4. Levantar servicios
 docker-compose -f docker-compose.production.yml up -d
 
+# 4.5 Esperar a que los servicios inicien
+echo "⏳ Esperando que los servicios inicien (30 segundos)..."
+sleep 30
+
 # 5. Esperar MySQL
 echo "⏳ Esperando MySQL..."
-for i in {1..60}; do
-    docker exec sdrimsacbot-mysql mariadb-admin -uroot -proot ping &>/dev/null && break
+for i in {1..120}; do
+    if docker exec sdrimsacbot-mysql mariadb-admin -uroot -proot ping &>/dev/null 2>&1; then
+        echo "✅ MySQL listo"
+        break
+    fi
+    if [ $((i % 20)) -eq 0 ]; then
+        echo "  Intento $i/120... ($(($i * 2)) segundos)"
+    fi
     sleep 2
 done
+
+# Verificar si MySQL respondió
+if [ $i -eq 120 ]; then
+    echo "❌ Error: MySQL no respondió después de 4 minutos"
+    docker-compose -f docker-compose.production.yml logs mysql | tail -20
+    exit 1
+fi
 
 # 6. Instalar dependencias
 docker-compose -f docker-compose.production.yml exec -T app composer install --no-dev --optimize-autoloader
