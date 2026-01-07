@@ -56,7 +56,9 @@ RUN chown -R www-data:www-data /var/www && \
     chmod -R 755 /var/www/bootstrap/cache
 
 # Crear directorios necesarios
-RUN mkdir -p /var/www/storage/logs
+RUN mkdir -p /var/www/storage/logs /var/www/storage/sockets && \
+    chown -R www-data:www-data /var/www/storage/sockets && \
+    chmod 777 /var/www/storage/sockets
 
 # Copiar configuración de PHP-FPM
 COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf

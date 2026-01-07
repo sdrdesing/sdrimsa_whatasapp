@@ -11,7 +11,6 @@ services:
     volumes:
       - ./.env.production:/var/www/.env
       - ./storage:/var/www/storage
-      - php_socket:/var/run
     depends_on:
       - mysql
       - redis
@@ -49,7 +48,6 @@ services:
       - /var/www/sdrimsacbot:/var/www
       - ./docker/nginx/production.conf:/etc/nginx/conf.d/default.conf
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - php_socket:/var/run
     depends_on:
       - app
       - baileys
@@ -100,7 +98,6 @@ services:
 volumes:
   mysql_data:
   redis_data:
-  php_socket:
 
 networks:
   appnet:
