@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => ({
         strictPort: true,
         hmr: {
             host: 'localhost',
+            port: 5173,
             protocol: 'ws',
         },
         watch: { usePolling: true, interval: 100 },

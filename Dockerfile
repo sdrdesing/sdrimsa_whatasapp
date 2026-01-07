@@ -1,34 +1,39 @@
 FROM php:8.2-fpm
 
-# Dependencias del sistema
+WORKDIR /var/www
+
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
-    git unzip libpng-dev libonig-dev libxml2-dev \
-    libzip-dev zip curl \
-    && docker-php-ext-install pdo_mysql mbstring zip exif pcntl
+    git curl unzip libpng-dev libonig-dev libxml2-dev \
+    libzip-dev zip supervisor \
+    && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl bcmath \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Instalar Redis
 RUN pecl install redis && \
     docker-php-ext-enable redis
 
-# Composer
+# Copiar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www
-
-# Copiar código
+# Copiar código del proyecto
 COPY . .
 
-# Instalar dependencias PHP
-RUN composer install --no-dev --optimize-autoloader
+# Instalar dependencias de Composer
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Optimizar Laravel
-RUN php artisan key:generate \
- && php artisan config:clear \
- && php artisan config:cache \
- && php artisan route:cache \
- && php artisan view:cache
+# Configurar permisos
+RUN chown -R www-data:www-data /var/www && \
+    chmod -R 755 /var/www/storage && \
+    chmod -R 755 /var/www/bootstrap/cache
 
-RUN chown -R www-data:www-data /var/www
+# Generar clave de aplicación (con || true para evitar error si ya existe)
+RUN php artisan key:generate --force || true
+
+# Limpiar caché
+RUN php artisan config:clear || true && \
+    php artisan cache:clear || true
 
 EXPOSE 9000
+
 CMD ["php-fpm"]

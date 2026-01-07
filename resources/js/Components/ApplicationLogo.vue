@@ -24,7 +24,7 @@ export default {
     computed: {
         logo() {
             // @vite-ignore
-            return new URL('../../public/logos/sdrimsac.png', import.meta.url).href;
+            return '/logos/sdrimsac.png';
         },
         computedSize() {
             return typeof this.size === 'number' ? `${this.size}px` : this.size;
