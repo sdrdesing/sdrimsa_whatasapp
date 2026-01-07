@@ -15,7 +15,7 @@ DB_PASSWORD=Sdrimsac@2026!
 DB_ROOT_PASSWORD=root
 CACHE_DRIVER=redis
 QUEUE_CONNECTION=redis
-REDIS_HOST=sdrimsacbot-redis
+REDIS_HOST=redis
 LOG_LEVEL=error
 WHATSAPP_NODE_URL=http://baileys:3000
 EOF
