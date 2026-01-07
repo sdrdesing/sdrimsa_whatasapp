@@ -33,9 +33,7 @@ foreach (config('tenancy.central_domains') as $domain) {
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-        Route::resource('tenants', \App\Http\Controllers\TenantController::class, ['index' => 'tenants.index']);
-        Route::resource('tenants', \App\Http\Controllers\TenantController::class, ['store' => 'tenants.store']);
-
+        Route::resource('tenants', \App\Http\Controllers\TenantController::class);
     });
 
     /* require __DIR__.'/auth.php'; */

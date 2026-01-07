@@ -3,6 +3,7 @@ import TenantLayout from '@/Layouts/TenantLayout.vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { io } from 'socket.io-client';
 
+const faviconUrl = new URL('/src/../public/logos/favicon.png', import.meta.url).href;
 
 let socket = null
 const socketChannelRef = ref(null);
@@ -13,20 +14,6 @@ onMounted(async () => {
     const socketChannelValue = await fetchSocketChannel();
     socketChannelRef.value = socketChannelValue;
     console.log('🔑 socket_channel (mount) ->', socketChannelValue);
-
-    /* socket = io("http://localhost:3000", {
-        transports: ["polling", "websocket"],
-    }); */
-
-    // Detectar el protocolo (http/https) y el dominio actual del tenant
-    /* const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-    const host = window.location.host;
-    const socketUrl = `${protocol}//${host}`;
-
-    socket = io(socketUrl, {
-        path: "/socket.io",
-        transports: ["websocket"],
-    }); */
 
     const host = window.location.host; // ej: sdrimsac.xyz o demito.sdrimsac.xyz
     const socketUrl = `${window.location.origin}`; // esto incluye protocolo + host
@@ -362,7 +349,7 @@ async function fetchWhatsappQr() {
                 <div class="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-slate-800 to-slate-900 p-8 mb-6">
                     <div class="flex items-center justify-between gap-4">
                         <div class="flex items-center gap-4">
-                            <img src="" alt="logo" class="h-16 w-16 object-contain hidden sm:block" />
+                            <img :src="faviconUrl" alt="logo" class="h-16 w-16 object-contain hidden sm:block" />
                             <div>
                                 <h1 class="text-3xl font-bold text-white">Sdrimsac WhatsApp Bot</h1>
                                 <p class="text-sm text-slate-300">Panel de Control y Gestión de Mensajes</p>

@@ -10,4 +10,10 @@ use Stancl\Tenancy\Database\Concerns\HasDomains;
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
     use HasDatabase, HasDomains;
+    
+    /**
+     * Deshabilitar eventos del modelo para evitar que se disparen
+     * listeners automáticos durante la creación
+     */
+    protected $dispatchesEvents = [];
 }

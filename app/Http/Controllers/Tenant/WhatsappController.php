@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\tenant\TenantSocket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class WhatsappController extends Controller
 {
@@ -18,49 +19,86 @@ class WhatsappController extends Controller
             'socket_channel' => $socket ? $socket->socket_channel : null,
         ]);
     }
-    /* private function baseUrl()
-    {
-        return 'http://baileys-bot:3000';
-    } */
-
     private function baseUrl()
     {
-        return env('WHATSAPP_NODE_URL', 'http://host.docker.internal:3000');
+        return env('WHATSAPP_NODE_URL', 'http://baileys:3000');
     }
     public function status()
     {
-        return Http::get($this->baseUrl() . '/status')->json();
+        try {
+            return Http::get($this->baseUrl() . '/status')->json();
+        } catch (\Exception $e) {
+            Log::error('Error en status: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al obtener estado: ' . $e->getMessage()
+            ], 500);
+        }
     }
     
     public function deleteSession(Request $request)
     {
-        return Http::post($this->baseUrl() . '/api/session/delete', [
-            'tenantId' => $request->tenantId,
-        ])->json();
+        try {
+            $response = Http::post($this->baseUrl() . '/api/session/delete', [
+                'tenantId' => $request->tenantId,
+            ]);
+            
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error en deleteSession: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al eliminar sesión: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function send(Request $request)
     {
-        /* dump($request->all()); */
-        return Http::post($this->baseUrl() . '/api/send-messages', [
-            'number'  => $request->number,
-            'message' => $request->message,
-            'tenantId' => $request->tenantId,
-        ])->json();
+        try {
+            $response = Http::post($this->baseUrl() . '/api/send-messages', [
+                'number'  => $request->number,
+                'message' => $request->message,
+                'tenantId' => $request->tenantId,
+            ]);
+            
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error en send: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al enviar mensaje: ' . $e->getMessage(),
+                'message' => 'No se puede conectar al servicio de WhatsApp. Por favor, intenta más tarde.'
+            ], 500);
+        }
     }
 
     public function qr()
     {
-        return Http::get($this->baseUrl() . '/qr')->json();
+        try {
+            return Http::get($this->baseUrl() . '/qr')->json();
+        } catch (\Exception $e) {
+            Log::error('Error en qr: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al obtener QR: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function send_media(Request $request)
     {
-        return Http::post($this->baseUrl() . '/api/send-medias', [
-            'number'    => $request->number,
-            'caption'   => $request->caption,
-            'media_url' => $request->media_url,
-        ])->json();
+        try {
+            $response = Http::post($this->baseUrl() . '/api/send-medias', [
+                'number'    => $request->number,
+                'caption'   => $request->caption,
+                'media_url' => $request->media_url,
+            ]);
+            
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error en send_media: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al enviar media: ' . $e->getMessage(),
+                'message' => 'No se puede conectar al servicio de WhatsApp. Por favor, intenta más tarde.'
+            ], 500);
+        }
     }
 
 

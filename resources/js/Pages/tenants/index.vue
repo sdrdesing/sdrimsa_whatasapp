@@ -2,53 +2,17 @@
 import { ref, reactive, watch } from 'vue';
 import { router, usePage, Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Modal from '@/Components/Modal.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
+import TenantForm from '@/Pages/tenants/form.vue';
 
 const showModal = ref(false);
-const form = reactive({
-    name: '',
-    errors: {},
-});
 
-const submitForm = () => {
-    form.errors = {};
-
-    if (!form.name) {
-        form.errors.name = 'El nombre del subdominio es obligatorio.';
-        return;
-    }
-    const payload = {
-        id: form.name,
-        name: form.name,
-    };
-    router.post('/tenants', payload, {
-        onSuccess: () => {
-            showModal.value = false;
-            form.name = '';
-        },
-        onError: (errors) => {
-            form.errors = errors || {};
-        },
-    });
-};
+const page = usePage();
 
 const deleteTenant = (id) => {
     router.delete(`/tenants/${id}`);
 };
-
-const page = usePage();
-
-watch(() => page.props.flash && page.props.flash.success, (val) => {
-    if (val) {
-        showModal.value = false;
-        form.name = '';
-        form.errors = {};
-    }
-});
 
 </script>
 
@@ -114,29 +78,8 @@ watch(() => page.props.flash && page.props.flash.success, (val) => {
 
         </div>
 
-        <!-- Modal de ejemplo: reemplaza el contenido por tu formulario -->
-        <Modal :show="showModal" @close="showModal = false">
-            <div class="p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Crear Tenant</h3>
-
-                <form @submit.prevent="submitForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <InputLabel for="name" value="Subdominio" class="mb-1" />
-                                <TextInput v-model="form.name" placeholder="Ej: Mi Empresa" :error="form.errors.name">
-                                </TextInput>
-                            </div>
-                        </div>
-                        <div class="flex justify-end mt-4 space-x-2">
-                            <button @click="showModal = false" type="button"
-                                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cerrar</button>
-                            <button type="button" @click.prevent="submitForm"
-                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Crear</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </Modal>
+        <!-- Componente de formulario como modal -->
+        <TenantForm :show="showModal" @close="showModal = false" />
+        
     </AuthenticatedLayout>
 </template>

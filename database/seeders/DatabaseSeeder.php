@@ -12,12 +12,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
-
-        \App\Models\User::factory()->create([
-             'name' => 'sdrimsac',
-             'email' => 'sdrimsac@gmail.com',
-             'password' => bcrypt('123456'),
-         ]);
+        // Seed para el tenant
+        $this->call(TenantSeeder::class);
     }
 }
