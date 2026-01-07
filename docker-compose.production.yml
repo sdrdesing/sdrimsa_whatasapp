@@ -33,6 +33,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - app
+      - baileys
     networks:
       - appnet
     environment:
@@ -83,6 +84,21 @@ services:
     networks:
       - appnet
     command: php /var/www/artisan schedule:work
+
+  baileys:
+    image: node:20-alpine
+    container_name: baileys-bot-prod
+    restart: always
+    working_dir: /var/www/baileys-bot
+    volumes:
+      - /var/www/sdrimsacbot/baileys-bot:/var/www/baileys-bot
+    depends_on:
+      - redis
+    networks:
+      - appnet
+    command: sh -c "npm install --production && npm start"
+    environment:
+      - NODE_ENV=production
 
 volumes:
   mysql_data:
