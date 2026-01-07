@@ -1,7 +1,6 @@
 <script setup>
-import { ref } from 'vue';
-import { Inertia } from '@inertiajs/inertia';
-import { Head } from '@inertiajs/vue3';
+import { ref, reactive, watch } from 'vue';
+import { router, usePage, Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -10,32 +9,46 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 
 const showModal = ref(false);
-const form = ref({
+const form = reactive({
     name: '',
     errors: {},
 });
 
 const submitForm = () => {
-    form.value.errors = {};
+    form.errors = {};
 
-    if (!form.value.name) {
-        form.value.errors.name = 'El nombre del subdominio es obligatorio.';
+    if (!form.name) {
+        form.errors.name = 'El nombre del subdominio es obligatorio.';
         return;
     }
     const payload = {
-        id: form.value.name,
-        name: form.value.name,
+        id: form.name,
+        name: form.name,
     };
-    Inertia.post('/tenants', payload, {
+    router.post('/tenants', payload, {
         onSuccess: () => {
             showModal.value = false;
-            form.value.name = '';
+            form.name = '';
         },
         onError: (errors) => {
-            form.value.errors = errors || {};
+            form.errors = errors || {};
         },
     });
 };
+
+const deleteTenant = (id) => {
+    router.delete(`/tenants/${id}`);
+};
+
+const page = usePage();
+
+watch(() => page.props.flash && page.props.flash.success, (val) => {
+    if (val) {
+        showModal.value = false;
+        form.name = '';
+        form.errors = {};
+    }
+});
 
 </script>
 
@@ -75,13 +88,11 @@ const submitForm = () => {
                                     <td class="border px-4 py-2">{{ tenant.name }}</td>
                                     <td>
                                         <template v-if="tenant.domain || (tenant.domains && tenant.domains.length)">
-                                            <a
-                                                :href="(tenant.domain || (tenant.domains && tenant.domains.length ? tenant.domains[0].domain : '')) ? `http://${tenant.domain || tenant.domains[0].domain}` : '#'"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                class="text-blue-600 hover:underline"
-                                            >
-                                                {{ tenant.domain ? tenant.domain : (tenant.domains && tenant.domains.length ? tenant.domains[0].domain : '') }}
+                                            <a :href="(tenant.domain || (tenant.domains && tenant.domains.length ? tenant.domains[0].domain : '')) ? `http://${tenant.domain || tenant.domains[0].domain}` : '#'"
+                                                target="_blank" rel="noopener noreferrer"
+                                                class="text-blue-600 hover:underline">
+                                                {{ tenant.domain ? tenant.domain : (tenant.domains &&
+                                                    tenant.domains.length ? tenant.domains[0].domain : '') }}
                                             </a>
                                         </template>
                                     </td>
@@ -91,7 +102,7 @@ const submitForm = () => {
                                     <td class="border px-4 py-2">
                                         <!-- <PrimaryButton   >editar</PrimaryButton> -->
 
-                                        <DangerButton @click="() => Inertia.delete(`/tenants/${tenant.id}`)">Eliminar</DangerButton>
+                                        <DangerButton @click="deleteTenant(tenant.id)">Eliminar</DangerButton>
                                     </td>
                                 </tr>
                             </tbody>
@@ -108,22 +119,23 @@ const submitForm = () => {
             <div class="p-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Crear Tenant</h3>
 
-                <form class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form @submit.prevent="submitForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <InputLabel for="name" value="Subdominio" class="mb-1" />
-                        <TextInput 
-                            v-model="form.name" 
-                            placeholder="Ej: Mi Empresa" 
-                            :error="form.errors.name"
-                        ></TextInput>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <InputLabel for="name" value="Subdominio" class="mb-1" />
+                                <TextInput v-model="form.name" placeholder="Ej: Mi Empresa" :error="form.errors.name">
+                                </TextInput>
+                            </div>
+                        </div>
+                        <div class="flex justify-end mt-4 space-x-2">
+                            <button @click="showModal = false" type="button"
+                                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cerrar</button>
+                            <button type="button" @click.prevent="submitForm"
+                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Crear</button>
+                        </div>
                     </div>
                 </form>
-                <div class="flex justify-end mt-4 space-x-2">
-                    <button @click="showModal = false" type="button"
-                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cerrar</button>
-                    <button type="submit"
-                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @click="submitForm">Crear</button>
-                </div>
             </div>
         </Modal>
     </AuthenticatedLayout>
