@@ -29,11 +29,7 @@ export default defineConfig(({ mode }) => ({
         host: '0.0.0.0',
         port: 5173,
         strictPort: true,
-        hmr: {
-            host: 'sdrimsac.xyz',
-            port: 443,
-            protocol: 'wss',
-        },
+        hmr: false,
         watch: { usePolling: true, interval: 100 },
     } : undefined,
 }));
