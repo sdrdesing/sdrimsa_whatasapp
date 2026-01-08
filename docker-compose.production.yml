@@ -57,7 +57,7 @@ services:
       - appnet
 
   mysql:
-    image: mariadb:10.6
+    image: mysql:8.0
     container_name: sdrimsacbot-mysql
     restart: always
     environment:
