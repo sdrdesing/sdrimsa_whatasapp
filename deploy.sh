@@ -36,9 +36,11 @@ sleep 30
 
 # 5. Esperar MySQL completamente listo
 echo "⏳ Esperando MySQL..."
+MYSQL_READY=false
 for i in {1..150}; do
-    if docker compose -f docker-compose.production.yml exec -T sdrimsacbot-mysql mariadb -uroot -proot -e "SELECT 1" &>/dev/null 2>&1; then
+    if docker compose -f docker-compose.production.yml exec -T sdrimsacbot-mysql mariadb -h localhost -uroot -proot -e "SELECT 1" &>/dev/null 2>&1; then
         echo "✅ MySQL responde"
+        MYSQL_READY=true
         break
     fi
     if [ $((i % 20)) -eq 0 ]; then
@@ -47,8 +49,10 @@ for i in {1..150}; do
     sleep 2
 done
 
-if [ $i -eq 60 ]; then
-    echo "❌ Error: BD no está lista"
+if [ "$MYSQL_READY" = false ]; then
+    echo "❌ Error: BD no está lista después de $i intentos"
+    echo "💡 Verificando logs:"
+    docker compose -f docker-compose.production.yml logs mysql | tail -20
     exit 1
 fi
 

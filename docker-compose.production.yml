@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   app:
     build:
@@ -58,7 +57,7 @@ services:
 
   mysql:
     image: mariadb:10.6
-    container_name: sdrimsacbot-mysql
+    container_name: mysql
     restart: always
     environment:
       MYSQL_DATABASE: sdrimsacbot
