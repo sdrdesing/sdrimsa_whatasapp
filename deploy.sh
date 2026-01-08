@@ -8,7 +8,7 @@ APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:gURgrvfW8HLNz/GLI2i9Xk0b47+aSzt3GNOLatBqjJ8=
 APP_URL=https://sdrimsac.xyz
-DB_HOST=sdrimsacbot-mysql
+DB_HOST=mysql
 DB_DATABASE=sdrimsacbot
 DB_USERNAME=sdrimsac
 DB_PASSWORD=Sdrimsac@2026!
