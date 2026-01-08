@@ -25,14 +25,14 @@ export default defineConfig(({ mode }) => ({
         assetsInlineLimit: 0,
     },
     base: '/build/',
-    server: mode === 'development' ? {
+    server: process.env.NODE_ENV === 'development' ? {
         host: '0.0.0.0',
         port: 5173,
         strictPort: true,
         hmr: {
-            host: 'localhost',
-            port: 5173,
-            protocol: 'ws',
+            host: 'sdrimsac.xyz',
+            port: 443,
+            protocol: 'wss',
         },
         watch: { usePolling: true, interval: 100 },
     } : undefined,
