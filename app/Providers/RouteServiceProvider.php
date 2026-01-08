@@ -43,6 +43,13 @@ class RouteServiceProvider extends ServiceProvider
                 InitializeTenancyByDomain::class,
                 PreventAccessFromCentralDomains::class,
             ])->group(base_path('routes/tenant.php'));
+
+            Route::middleware([
+                'api',
+                InitializeTenancyByDomain::class,
+                PreventAccessFromCentralDomains::class,
+            ])
+                ->group(base_path('routes/tenant-api.php'));
         });
     }
 }
