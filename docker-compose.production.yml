@@ -11,6 +11,8 @@ services:
     volumes:
       - ./.env.production:/var/www/.env
       - ./storage:/var/www/storage
+    expose:
+      - "9000"
     depends_on:
       - mysql
       - redis
