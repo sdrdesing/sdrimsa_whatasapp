@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.production
-    container_name: sdrimsacbot-app
+    container_name: app
     restart: always
     env_file:
       - .env.production
