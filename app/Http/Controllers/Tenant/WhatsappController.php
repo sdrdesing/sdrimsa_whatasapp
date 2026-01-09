@@ -23,6 +23,13 @@ class WhatsappController extends Controller
     {
         return env('WHATSAPP_NODE_URL', 'http://baileys:3000');
     }
+
+    private function getTenantSocketChannel()
+    {
+        $socket = TenantSocket::first();
+        return $socket ? $socket->socket_channel : null;
+    }
+
     public function status()
     {
         try {
@@ -38,8 +45,17 @@ class WhatsappController extends Controller
     public function deleteSession(Request $request)
     {
         try {
+            $socketChannel = $this->getTenantSocketChannel();
+            
+            if (!$socketChannel) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Bot no está configurado para este tenant'
+                ], 422);
+            }
+
             $response = Http::post($this->baseUrl() . '/api/session/delete', [
-                'tenantId' => $request->tenantId,
+                'tenantId' => $socketChannel,
             ]);
             
             return response()->json($response->json(), $response->status());
@@ -54,10 +70,19 @@ class WhatsappController extends Controller
     public function send(Request $request)
     {
         try {
+            $socketChannel = $this->getTenantSocketChannel();
+            
+            if (!$socketChannel) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Bot no está configurado para este tenant'
+                ], 422);
+            }
+
             $response = Http::post($this->baseUrl() . '/api/send-messages', [
                 'number'  => $request->number,
                 'message' => $request->message,
-                'tenantId' => $request->tenantId,
+                'tenantId' => $socketChannel,
             ]);
             
             return response()->json($response->json(), $response->status());
@@ -85,10 +110,20 @@ class WhatsappController extends Controller
     public function send_media(Request $request)
     {
         try {
+            $socketChannel = $this->getTenantSocketChannel();
+            
+            if (!$socketChannel) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Bot no está configurado para este tenant'
+                ], 422);
+            }
+
             $response = Http::post($this->baseUrl() . '/api/send-medias', [
                 'number'    => $request->number,
                 'caption'   => $request->caption,
                 'media_url' => $request->media_url,
+                'tenantId'  => $socketChannel,
             ]);
             
             return response()->json($response->json(), $response->status());
