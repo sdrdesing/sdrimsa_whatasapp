@@ -154,9 +154,10 @@ class WhatsappController extends Controller
                     ], 422);
                 }
 
-                $fileName = basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
+                // Permitir override explícito del nombre/MIME aunque venga por URL
+                $fileName = $request->file_name ?: basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
                 $fileBody = $fileResponse->body();
-                $headerMime = $fileResponse->header('Content-Type') ?? '';
+                $headerMime = $request->file_mime ?: ($fileResponse->header('Content-Type') ?? '');
             }
 
             // Resolver MIME de forma robusta por extensión y contenido
