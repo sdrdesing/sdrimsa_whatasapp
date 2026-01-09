@@ -44,8 +44,8 @@ class RouteServiceProvider extends ServiceProvider
                 PreventAccessFromCentralDomains::class,
             ])->group(base_path('routes/tenant.php'));
 
+            // Rutas públicas de API (sin autenticación, con contexto de tenant)
             Route::middleware([
-                'api',
                 InitializeTenancyByDomain::class,
                 PreventAccessFromCentralDomains::class,
             ])
