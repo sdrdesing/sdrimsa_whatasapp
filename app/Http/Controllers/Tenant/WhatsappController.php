@@ -119,26 +119,45 @@ class WhatsappController extends Controller
                 ], 422);
             }
 
-            if (!$request->number || !$request->media_url) {
+            if (!$request->number || (!$request->media_url && !$request->file_base64)) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Faltan parámetros: number, media_url'
+                    'message' => 'Faltan parámetros: number y (media_url o file_base64)'
                 ], 422);
             }
 
-            // Descargar el archivo remoto y enviarlo como multipart/form-data al bot
-            $fileResponse = Http::timeout(15)->get($request->media_url);
+            $usingBase64 = (bool) $request->file_base64;
+            $fileName = 'media';
+            $fileBody = '';
+            $headerMime = '';
 
-            if (!$fileResponse->successful()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'No se pudo descargar el archivo desde media_url'
-                ], 422);
+            if ($usingBase64) {
+                // Priorizar archivo enviado en base64 + nombre explícito
+                $fileName = $request->file_name ?: 'media';
+                $headerMime = $request->file_mime ?: '';
+                $fileBody = base64_decode($request->file_base64, true);
+
+                if ($fileBody === false) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'file_base64 no es válido'
+                    ], 422);
+                }
+            } else {
+                // Descargar el archivo remoto y enviarlo como multipart/form-data al bot
+                $fileResponse = Http::timeout(15)->get($request->media_url);
+
+                if (!$fileResponse->successful()) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'No se pudo descargar el archivo desde media_url'
+                    ], 422);
+                }
+
+                $fileName = basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
+                $fileBody = $fileResponse->body();
+                $headerMime = $fileResponse->header('Content-Type') ?? '';
             }
-
-            $fileName = basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
-            $fileBody = $fileResponse->body();
-            $headerMime = $fileResponse->header('Content-Type') ?? '';
 
             // Resolver MIME de forma robusta por extensión y contenido
             $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
@@ -180,6 +199,7 @@ class WhatsappController extends Controller
                 'detected_mime' => $detectedMime,
                 'selected_mime' => $mimeType,
                 'tenant_channel' => $socketChannel,
+                'source' => $usingBase64 ? 'base64' : 'url',
             ]);
 
             $response = Http::timeout(30)
