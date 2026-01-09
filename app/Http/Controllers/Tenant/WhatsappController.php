@@ -138,7 +138,49 @@ class WhatsappController extends Controller
 
             $fileName = basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
             $fileBody = $fileResponse->body();
-            $mimeType = $fileResponse->header('Content-Type') ?? 'application/octet-stream';
+            $headerMime = $fileResponse->header('Content-Type') ?? '';
+
+            // Resolver MIME de forma robusta por extensión y contenido
+            $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $mimeByExt = match ($ext) {
+                'pdf' => 'application/pdf',
+                'xml' => 'application/xml',
+                'txt' => 'text/plain',
+                'jpg', 'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'mp4' => 'video/mp4',
+                'mp3' => 'audio/mpeg',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls' => 'application/vnd.ms-excel',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'zip' => 'application/zip',
+                default => ''
+            };
+
+            $detectedMime = '';
+            if (function_exists('finfo_open')) {
+                try {
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $detectedMime = $finfo->buffer($fileBody) ?: '';
+                } catch (\Throwable $t) {
+                    $detectedMime = '';
+                }
+            }
+
+            // Prioridad: por extensión -> por contenido -> header remoto -> octet-stream
+            $mimeType = $mimeByExt ?: $detectedMime ?: $headerMime ?: 'application/octet-stream';
+
+            Log::info('send_media: preparado archivo para enviar', [
+                'number' => $request->number,
+                'file_name' => $fileName,
+                'extension' => $ext,
+                'header_mime' => $headerMime,
+                'detected_mime' => $detectedMime,
+                'selected_mime' => $mimeType,
+                'tenant_channel' => $socketChannel,
+            ]);
 
             $response = Http::timeout(30)
                 ->attach('file', $fileBody, $fileName, ['Content-Type' => $mimeType])
