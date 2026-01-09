@@ -119,40 +119,40 @@ class WhatsappController extends Controller
                 ], 422);
             }
 
-            $response = Http::post($this->baseUrl() . '/api/send-medias', [
-                'number'    => $request->number,
-                'caption'   => $request->caption,
-                'media_url' => $request->media_url,
-                'tenantId'  => $socketChannel,
-            ]);
+            if (!$request->number || !$request->media_url) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Faltan parámetros: number, media_url'
+                ], 422);
+            }
+
+            // Descargar el archivo remoto y enviarlo como multipart/form-data al bot
+            $fileResponse = Http::timeout(15)->get($request->media_url);
+
+            if (!$fileResponse->successful()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No se pudo descargar el archivo desde media_url'
+                ], 422);
+            }
+
+            $fileName = basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
+            $fileBody = $fileResponse->body();
+
+            $response = Http::timeout(30)
+                ->attach('file', $fileBody, $fileName)
+                ->post($this->baseUrl() . '/api/send-medias', [
+                    'number'   => $request->number,
+                    'caption'  => $request->caption,
+                    'tenantId' => $socketChannel,
+                ]);
             
-                        if (!$request->number || !$request->media_url) {
-                            return response()->json([
-                                'status' => false,
-                                'message' => 'Faltan parámetros: number, media_url'
-                            ], 422);
-                        }
-
-                        // Descargar el archivo remoto y enviarlo como multipart/form-data al bot
-                        $fileResponse = Http::timeout(15)->get($request->media_url);
-
-                        if (!$fileResponse->successful()) {
-                            return response()->json([
-                                'status' => false,
-                                'message' => 'No se pudo descargar el archivo desde media_url'
-                            ], 422);
-                        }
-
-                        $fileName = basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
-                        $fileBody = $fileResponse->body();
-
-                        $response = Http::timeout(30)
-                            ->attach('file', $fileBody, $fileName)
-                            ->post($this->baseUrl() . '/api/send-medias', [
-                                'number'   => $request->number,
-                                'caption'  => $request->caption,
-                                'tenantId' => $socketChannel,
-                            ]);
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error en send_media: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al enviar media: ' . $e->getMessage(),
+                'message' => 'No se puede conectar al servicio de WhatsApp. Por favor, intenta más tarde.'
             ], 500);
         }
     }
