@@ -138,9 +138,10 @@ class WhatsappController extends Controller
 
             $fileName = basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
             $fileBody = $fileResponse->body();
+            $mimeType = $fileResponse->header('Content-Type') ?? 'application/octet-stream';
 
             $response = Http::timeout(30)
-                ->attach('file', $fileBody, $fileName)
+                ->attach('file', $fileBody, $fileName, ['Content-Type' => $mimeType])
                 ->post($this->baseUrl() . '/api/send-medias', [
                     'number'   => $request->number,
                     'caption'  => $request->caption,
