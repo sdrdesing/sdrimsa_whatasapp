@@ -8,8 +8,11 @@ import path from "path";
 
 class MessageQueue {
     constructor() {
-        // Estructura: { [tenantId]: { queue, isProcessing, config, stats, lastSendTime, consecutiveMessages } }
+        // Estructura: { [tenantId]: { queue, isProcessing, config, stats, lastSendTime, consecutiveMessages, sessionRecoveryAttempts } }
         this.tenants = {};
+        // Control de reintentos de recuperación de sesión por Bad MAC
+        this.sessionRecoveryAttempts = {};
+        this.MAX_SESSION_RECOVERY = 3;
     }
 
     /**
@@ -98,7 +101,7 @@ class MessageQueue {
         const queueRef = this.tenants[tenantId].queue;
         const config = this.tenants[tenantId].config;
         const stats = this.tenants[tenantId].stats;
-        while (queueRef.length > 0) {
+    while (queueRef.length > 0) {
             const item = queueRef[0];
             if (item.waiting) {
                 const allWaiting = queueRef.every(q => q.waiting);
@@ -159,10 +162,23 @@ class MessageQueue {
                 console.error(`❌ Error al enviar mensaje ${item.id}:`, error.message);
                 // Manejo especial para errores graves de sesión
                 if (error.message && error.message.includes('Bad MAC')) {
-                    console.error(`🚨 Sesión ${tenantId} marcada como fallida por error de cifrado (Bad MAC). Eliminando archivos y reiniciando sesión automáticamente.`);
+                    // Control de reintentos de recuperación
+                    if (!this.sessionRecoveryAttempts[tenantId]) {
+                        this.sessionRecoveryAttempts[tenantId] = 1;
+                    } else {
+                        this.sessionRecoveryAttempts[tenantId]++;
+                    }
+                    const intento = this.sessionRecoveryAttempts[tenantId];
+                    const timestamp = new Date().toISOString();
+                    console.error(`🚨 [${timestamp}] Sesión ${tenantId} marcada como fallida por error de cifrado (Bad MAC). Intento de recuperación #${intento}/${this.MAX_SESSION_RECOVERY}`);
                     this.tenants[tenantId].isProcessing = false;
                     this.tenants[tenantId].failed = true;
                     this.tenants[tenantId].queue = [];
+                    // Si supera el máximo de reintentos, no reiniciar más
+                    if (intento > this.MAX_SESSION_RECOVERY) {
+                        console.error(`🛑 [${timestamp}] Sesión ${tenantId} excedió el máximo de reintentos de recuperación por Bad MAC. Se requiere intervención manual (nuevo QR).`);
+                        break;
+                    }
                     // Eliminar archivos de sesión y reiniciar sesión
                     try {
                         // Eliminar archivos de sesión
@@ -170,6 +186,9 @@ class MessageQueue {
                         const sessionPath = path.resolve('./session', tenantId);
                         if (fs.existsSync(sessionPath)) {
                             fs.rmSync(sessionPath, { recursive: true, force: true });
+                            console.log(`🗑️ [${timestamp}] Archivos de sesión eliminados para ${tenantId}`);
+                        } else {
+                            console.log(`ℹ️ [${timestamp}] No se encontraron archivos de sesión para ${tenantId}`);
                         }
                     } catch (err) {
                         console.error(`Error eliminando archivos de sesión para ${tenantId}:`, err?.message || err);
@@ -178,6 +197,7 @@ class MessageQueue {
                         // Reiniciar sesión automáticamente
                         const { startBot } = await import('./startBot.js');
                         setTimeout(() => startBot(tenantId), 2000);
+                        console.log(`🔄 [${timestamp}] Intentando reiniciar sesión para ${tenantId}...`);
                     } catch (err) {
                         console.error(`Error reiniciando sesión para ${tenantId}:`, err?.message || err);
                     }
@@ -225,6 +245,10 @@ class MessageQueue {
                 lastSendTime: null,
                 consecutiveMessages: 0
             };
+        }
+        // Resetear contador de reintentos si la sesión se crea de cero
+        if (!this.sessionRecoveryAttempts[tenantId]) {
+            this.sessionRecoveryAttempts[tenantId] = 0;
         }
     }
 
