@@ -157,6 +157,16 @@ class MessageQueue {
                 }
             } catch (error) {
                 console.error(`❌ Error al enviar mensaje ${item.id}:`, error.message);
+                // Manejo especial para errores graves de sesión
+                if (error.message && error.message.includes('Bad MAC')) {
+                    console.error(`🚨 Sesión ${tenantId} marcada como fallida por error de cifrado (Bad MAC). Deteniendo solo esta cola.`);
+                    // Marcar la sesión como fallida y limpiar la cola
+                    this.tenants[tenantId].isProcessing = false;
+                    this.tenants[tenantId].failed = true;
+                    // Opcional: limpiar la cola para evitar reintentos infinitos
+                    this.tenants[tenantId].queue = [];
+                    break;
+                }
                 if (item.retries < config.maxRetries) {
                     item.retries++;
                     console.log(`🔄 Reintentando mensaje ${item.id} (intento ${item.retries}/${config.maxRetries})`);
