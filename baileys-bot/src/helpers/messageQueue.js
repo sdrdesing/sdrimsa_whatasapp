@@ -8,81 +8,55 @@ import path from "path";
 
 class MessageQueue {
     constructor() {
-        this.queue = [];
-        this.isProcessing = false;
-        this.config = {
-            minDelay: 8000, // Mínimo 8 segundos entre mensajes
-            maxDelay: 20000, // Máximo 20 segundos entre mensajes
-            randomVariation: true, // Activar variación aleatoria
-            humanPattern: true, // Simular pausas humanas
-            maxRetries: 3,
-            retryDelay: 3000 // 3 segundos antes de reintentar
-        };
-        this.stats = {
-            totalQueued: 0,
-            totalSent: 0,
-            totalFailed: 0,
-            currentQueueSize: 0,
-            averageDelay: 0
-        };
-        this.lastSendTime = null;
-        this.consecutiveMessages = 0;
+        // Estructura: { [tenantId]: { queue, isProcessing, config, stats, lastSendTime, consecutiveMessages } }
+        this.tenants = {};
     }
 
     /**
      * Configurar delays personalizados
      */
-    setDelay(minMs, maxMs) {
-        this.config.minDelay = minMs;
-        this.config.maxDelay = maxMs || minMs * 2;
-        console.log(`⚙️ Delay dinámico configurado: ${minMs}ms - ${this.config.maxDelay}ms`);
+    setDelay(minMs, maxMs, tenantId = 'default') {
+        this._ensureTenant(tenantId);
+        this.tenants[tenantId].config.minDelay = minMs;
+        this.tenants[tenantId].config.maxDelay = maxMs || minMs * 2;
+        console.log(`⚙️ Delay dinámico configurado para ${tenantId}: ${minMs}ms - ${this.tenants[tenantId].config.maxDelay}ms`);
     }
 
     /**
      * Calcular delay dinámico con patrón humano
      */
-    calculateDynamicDelay() {
-        const { minDelay, maxDelay, humanPattern } = this.config;
-        
-        // Delay base aleatorio entre min y max
+    calculateDynamicDelay(tenantId = 'default') {
+        this._ensureTenant(tenantId);
+        const { minDelay, maxDelay, humanPattern } = this.tenants[tenantId].config;
         let delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
-        
-        // Si está activado el patrón humano, añadir variaciones adicionales
         if (humanPattern) {
-            // Cada 5-7 mensajes, hacer una pausa más larga (simular distracción humana)
-            this.consecutiveMessages++;
-            
-            if (this.consecutiveMessages >= Math.floor(Math.random() * 3) + 5) {
-                const longPause = Math.floor(Math.random() * 15000) + 25000; // 25-40 segundos
-                console.log(`🧑 Pausa humana extendida: ${longPause}ms`);
-                this.consecutiveMessages = 0;
+            this.tenants[tenantId].consecutiveMessages++;
+            if (this.tenants[tenantId].consecutiveMessages >= Math.floor(Math.random() * 3) + 5) {
+                const longPause = Math.floor(Math.random() * 15000) + 25000;
+                console.log(`🧑 Pausa humana extendida para ${tenantId}: ${longPause}ms`);
+                this.tenants[tenantId].consecutiveMessages = 0;
                 return longPause;
             }
-            
-            // Añadir micro-variaciones (±2 segundos aleatorios)
             const microVariation = Math.floor(Math.random() * 4000) - 2000;
             delay += microVariation;
         }
-        
-        // Asegurar que no sea menor al mínimo
         delay = Math.max(delay, minDelay);
-        
-        // Actualizar estadística
-        this.updateAverageDelay(delay);
-        
+        this.updateAverageDelay(delay, tenantId);
         return delay;
     }
 
     /**
      * Actualizar promedio de delay para estadísticas
      */
-    updateAverageDelay(currentDelay) {
-        if (this.stats.totalSent === 0) {
-            this.stats.averageDelay = currentDelay;
+    updateAverageDelay(currentDelay, tenantId = 'default') {
+        this._ensureTenant(tenantId);
+        const stats = this.tenants[tenantId].stats;
+        if (stats.totalSent === 0) {
+            stats.averageDelay = currentDelay;
         } else {
-            this.stats.averageDelay = Math.floor(
-                (this.stats.averageDelay * this.stats.totalSent + currentDelay) / 
-                (this.stats.totalSent + 1)
+            stats.averageDelay = Math.floor(
+                (stats.averageDelay * stats.totalSent + currentDelay) /
+                (stats.totalSent + 1)
             );
         }
     }
@@ -92,9 +66,8 @@ class MessageQueue {
      */
     async addToQueue(messageData) {
         return new Promise((resolve, reject) => {
-            // Asegurar que siempre haya tenantId en el data del item
-            if (!messageData.tenantId) messageData.tenantId = messageData?.tenantId || 'default';
-
+            const tenantId = messageData.tenantId || 'default';
+            this._ensureTenant(tenantId);
             const queueItem = {
                 id: Date.now() + Math.random(),
                 data: messageData,
@@ -103,16 +76,12 @@ class MessageQueue {
                 resolve,
                 reject
             };
-
-            this.queue.push(queueItem);
-            this.stats.totalQueued++;
-            this.stats.currentQueueSize = this.queue.length;
-
-            console.log(`📥 Mensaje agregado a la cola (tenant: ${messageData.tenantId}, posición: ${this.queue.length})`);
-
-            // Si no se está procesando, iniciar procesamiento
-            if (!this.isProcessing) {
-                this.processQueue();
+            this.tenants[tenantId].queue.push(queueItem);
+            this.tenants[tenantId].stats.totalQueued++;
+            this.tenants[tenantId].stats.currentQueueSize = this.tenants[tenantId].queue.length;
+            console.log(`📥 Mensaje agregado a la cola (tenant: ${tenantId}, posición: ${this.tenants[tenantId].queue.length})`);
+            if (!this.tenants[tenantId].isProcessing) {
+                this.processQueue(tenantId);
             }
         });
     }
@@ -120,32 +89,26 @@ class MessageQueue {
     /**
      * Procesar la cola de mensajes de forma secuencial
      */
-    async processQueue() {
-        if (this.isProcessing) {
+    async processQueue(tenantId = 'default') {
+        this._ensureTenant(tenantId);
+        if (this.tenants[tenantId].isProcessing) {
             return;
         }
-
-        this.isProcessing = true;
-        console.log(`🚀 Iniciando procesamiento de cola (${this.queue.length} mensajes pendientes)`);
-
-        while (this.queue.length > 0) {
-            const item = this.queue[0]; // Obtener el primero sin quitarlo aún
-            // Si el item está marcado como en espera (waiting) lo saltamos en esta pasada
-            // (se utiliza cuando el tenant está desconectado para no consumir retries)
+        this.tenants[tenantId].isProcessing = true;
+        const queueRef = this.tenants[tenantId].queue;
+        const config = this.tenants[tenantId].config;
+        const stats = this.tenants[tenantId].stats;
+        while (queueRef.length > 0) {
+            const item = queueRef[0];
             if (item.waiting) {
-                // Si todos los items están en espera, esperamos un poco antes de reintentar
-                const allWaiting = this.queue.every(q => q.waiting);
+                const allWaiting = queueRef.every(q => q.waiting);
                 if (allWaiting) {
-                    console.log('⏳ Todos los mensajes están esperando reconexión. Esperando 5s antes de reintentar...');
+                    console.log(`⏳ Todos los mensajes de ${tenantId} están esperando reconexión. Esperando 5s antes de reintentar...`);
                     await this.sleep(5000);
-
-                    // Después de esperar, re-evaluar los items en espera: si el tenant se reconectó,
-                    // actualizar la referencia del socket y limpiar la marca 'waiting' para que
-                    // sean procesados en la siguiente iteración.
-                    for (const qItem of this.queue) {
+                    for (const qItem of queueRef) {
                         if (!qItem.waiting) continue;
                         try {
-                            const tId = qItem.data?.tenantId || 'default';
+                            const tId = qItem.data?.tenantId || tenantId;
                             const tstate = getTenantState(tId);
                             if (tstate && tstate.connectionStatus === 'connected') {
                                 if (tstate.sock && tstate.sock !== qItem.data.sock) {
@@ -155,89 +118,88 @@ class MessageQueue {
                                 qItem.waiting = false;
                             }
                         } catch (err) {
-                            // No bloquear el loop por errores al re-evaluar
                             console.error('Error re-evaluando item en espera:', err?.message || err);
                         }
                     }
                 } else {
-                    // Mover este item al final para procesar otros
-                    this.queue.shift();
-                    this.queue.push(item);
+                    queueRef.shift();
+                    queueRef.push(item);
                 }
                 continue;
             }
-
             try {
-                console.log(`⏳ Procesando mensaje ${item.id} (${item.data.type}) a ${item.data.number || item.data.groupJid}`);
-                
-                // Antes de enviar, comprobar si el tenant/socket está conectado. Si no, marcar en espera
-                const tenantIdFromData = item.data?.tenantId || 'default';
+                console.log(`⏳ Procesando mensaje ${item.id} (${item.data.type}) a ${item.data.number || item.data.groupJid} para ${tenantId}`);
+                const tenantIdFromData = item.data?.tenantId || tenantId;
                 const tenantState = getTenantState(tenantIdFromData);
-                // Si no hay estado o no está conectado, marcar en espera
                 if (!tenantState || tenantState.connectionStatus !== 'connected') {
                     console.log(`⚠️ Tenant ${tenantIdFromData} desconectado — marcando mensaje ${item.id} en espera`);
                     item.waiting = true;
-                    // Mover al final de la cola para intentar otros mensajes
-                    this.queue.shift();
-                    this.queue.push(item);
-                    // No consumir retry en este caso. Continuar con siguiente mensaje.
+                    queueRef.shift();
+                    queueRef.push(item);
                     continue;
                 }
-
-                // Si el tenant está conectado pero la referencia del socket cambió,
-                // actualizar la referencia del socket en el item para poder enviar.
                 if (tenantState.sock && tenantState.sock !== item.data.sock) {
                     console.log(`ℹ️ Socket para ${tenantIdFromData} cambió — actualizando referencia para mensaje ${item.id}`);
                     item.data.sock = tenantState.sock;
                 }
-
-                // Ejecutar el envío del mensaje
                 const result = await this.sendMessage(item);
-                
-                // Si fue exitoso, resolver la promesa y quitar de la cola
                 item.resolve(result);
-                // Si estaba en espera, limpiar la marca
                 if (item.waiting) item.waiting = false;
-                this.queue.shift();
-                this.stats.totalSent++;
-                this.stats.currentQueueSize = this.queue.length;
-                
-                console.log(`✅ Mensaje enviado exitosamente (${this.queue.length} restantes en cola)`);
-                
-                // Calcular delay dinámico antes del siguiente mensaje
-                if (this.queue.length > 0) {
-                    const dynamicDelay = this.calculateDynamicDelay();
-                    console.log(`⏱️ Esperando ${dynamicDelay}ms (${(dynamicDelay/1000).toFixed(1)}s) antes del siguiente mensaje...`);
-                    this.lastSendTime = Date.now();
+                queueRef.shift();
+                stats.totalSent++;
+                stats.currentQueueSize = queueRef.length;
+                console.log(`✅ Mensaje enviado exitosamente (${queueRef.length} restantes en cola para ${tenantId})`);
+                if (queueRef.length > 0) {
+                    const dynamicDelay = this.calculateDynamicDelay(tenantId);
+                    console.log(`⏱️ Esperando ${dynamicDelay}ms (${(dynamicDelay/1000).toFixed(1)}s) antes del siguiente mensaje para ${tenantId}...`);
+                    this.tenants[tenantId].lastSendTime = Date.now();
                     await this.sleep(dynamicDelay);
                 }
-                
             } catch (error) {
                 console.error(`❌ Error al enviar mensaje ${item.id}:`, error.message);
-                
-                // Intentar reintentar si no se alcanzó el máximo
-                if (item.retries < this.config.maxRetries) {
+                if (item.retries < config.maxRetries) {
                     item.retries++;
-                    console.log(`🔄 Reintentando mensaje ${item.id} (intento ${item.retries}/${this.config.maxRetries})`);
-                    
-                    // Mover al final de la cola y esperar antes de reintentar
-                    this.queue.shift();
-                    this.queue.push(item);
-                    await this.sleep(this.config.retryDelay);
-                    
+                    console.log(`🔄 Reintentando mensaje ${item.id} (intento ${item.retries}/${config.maxRetries})`);
+                    queueRef.shift();
+                    queueRef.push(item);
+                    await this.sleep(config.retryDelay);
                 } else {
-                    // Si falló definitivamente, rechazar y quitar de la cola
-                    console.log(`💀 Mensaje ${item.id} falló después de ${this.config.maxRetries} intentos`);
+                    console.log(`💀 Mensaje ${item.id} falló después de ${config.maxRetries} intentos`);
                     item.reject(error);
-                    this.queue.shift();
-                    this.stats.totalFailed++;
-                    this.stats.currentQueueSize = this.queue.length;
+                    queueRef.shift();
+                    stats.totalFailed++;
+                    stats.currentQueueSize = queueRef.length;
                 }
             }
         }
+        console.log(`✨ Cola procesada completamente para ${tenantId}`);
+        this.tenants[tenantId].isProcessing = false;
+    }
 
-        console.log(`✨ Cola procesada completamente`);
-        this.isProcessing = false;
+    _ensureTenant(tenantId) {
+        if (!this.tenants[tenantId]) {
+            this.tenants[tenantId] = {
+                queue: [],
+                isProcessing: false,
+                config: {
+                    minDelay: 8000,
+                    maxDelay: 20000,
+                    randomVariation: true,
+                    humanPattern: true,
+                    maxRetries: 3,
+                    retryDelay: 3000
+                },
+                stats: {
+                    totalQueued: 0,
+                    totalSent: 0,
+                    totalFailed: 0,
+                    currentQueueSize: 0,
+                    averageDelay: 0
+                },
+                lastSendTime: null,
+                consecutiveMessages: 0
+            };
+        }
     }
 
     /**
