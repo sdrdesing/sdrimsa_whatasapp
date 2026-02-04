@@ -159,12 +159,28 @@ class MessageQueue {
                 console.error(`❌ Error al enviar mensaje ${item.id}:`, error.message);
                 // Manejo especial para errores graves de sesión
                 if (error.message && error.message.includes('Bad MAC')) {
-                    console.error(`🚨 Sesión ${tenantId} marcada como fallida por error de cifrado (Bad MAC). Deteniendo solo esta cola.`);
-                    // Marcar la sesión como fallida y limpiar la cola
+                    console.error(`🚨 Sesión ${tenantId} marcada como fallida por error de cifrado (Bad MAC). Eliminando archivos y reiniciando sesión automáticamente.`);
                     this.tenants[tenantId].isProcessing = false;
                     this.tenants[tenantId].failed = true;
-                    // Opcional: limpiar la cola para evitar reintentos infinitos
                     this.tenants[tenantId].queue = [];
+                    // Eliminar archivos de sesión y reiniciar sesión
+                    try {
+                        // Eliminar archivos de sesión
+                        const fs = await import('fs');
+                        const sessionPath = path.resolve('./session', tenantId);
+                        if (fs.existsSync(sessionPath)) {
+                            fs.rmSync(sessionPath, { recursive: true, force: true });
+                        }
+                    } catch (err) {
+                        console.error(`Error eliminando archivos de sesión para ${tenantId}:`, err?.message || err);
+                    }
+                    try {
+                        // Reiniciar sesión automáticamente
+                        const { startBot } = await import('./startBot.js');
+                        setTimeout(() => startBot(tenantId), 2000);
+                    } catch (err) {
+                        console.error(`Error reiniciando sesión para ${tenantId}:`, err?.message || err);
+                    }
                     break;
                 }
                 if (item.retries < config.maxRetries) {
