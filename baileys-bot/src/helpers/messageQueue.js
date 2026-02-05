@@ -465,22 +465,23 @@ class MessageQueue {
      * Obtener información de la cola actual
      */
     getQueueInfo() {
-        // Validar que stats exista y tenga averageDelay
+        this._ensureTenant(tenantId);
+        const tenant = this.tenants[tenantId];
         let avgDelaySeconds = 0;
-        if (this.stats && typeof this.stats.averageDelay !== 'undefined') {
-            avgDelaySeconds = (this.stats.averageDelay / 1000).toFixed(1);
+        if (tenant.stats && typeof tenant.stats.averageDelay !== 'undefined') {
+            avgDelaySeconds = (tenant.stats.averageDelay / 1000).toFixed(1);
         }
-        const estimatedMinTime = this.queue.length * (this.config?.minDelay || 0);
-        const estimatedMaxTime = this.queue.length * (this.config?.maxDelay || 0);
+        const estimatedMinTime = tenant.queue.length * (tenant.config?.minDelay || 0);
+        const estimatedMaxTime = tenant.queue.length * (tenant.config?.maxDelay || 0);
 
         return {
-            queueSize: this.queue.length,
-            isProcessing: this.isProcessing,
-            nextMessage: this.queue.length > 0 ? {
+            queueSize: tenant.queue.length,
+            isProcessing: tenant.isProcessing,
+            nextMessage: tenant.queue.length > 0 ? {
                 position: 1,
-                type: this.queue[0].data.type,
-                addedAt: this.queue[0].addedAt,
-                retries: this.queue[0].retries
+                type: tenant.queue[0].data.type,
+                addedAt: tenant.queue[0].addedAt,
+                retries: tenant.queue[0].retries
             } : null,
             estimatedWaitTime: {
                 min: estimatedMinTime,
@@ -489,7 +490,7 @@ class MessageQueue {
                 maxFormatted: `${(estimatedMaxTime / 1000 / 60).toFixed(1)} minutos`
             },
             averageDelay: `${avgDelaySeconds}s`,
-            consecutiveMessages: this.consecutiveMessages
+            consecutiveMessages: tenant.consecutiveMessages
         };
     }
 
