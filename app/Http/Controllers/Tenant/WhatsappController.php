@@ -119,12 +119,20 @@ class WhatsappController extends Controller
                 ], 422);
             }
 
-            if (!$request->number || (!$request->media_url && !$request->file_base64)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Faltan parámetros: number y (media_url o file_base64)'
-                ], 422);
-            }
+                $missing = [];
+                if (!$request->number) {
+                    $missing[] = 'number';
+                }
+                if (!$request->media_url && !$request->file_base64) {
+                    $missing[] = '(media_url o file_base64)';
+                }
+                if (count($missing) > 0) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Faltan parámetros: ' . implode(', ', $missing),
+                        'faltantes' => $missing
+                    ], 422);
+                }
 
             $usingBase64 = (bool) $request->file_base64;
             $fileName = 'media';
