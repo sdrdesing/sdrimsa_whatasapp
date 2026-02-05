@@ -465,10 +465,14 @@ class MessageQueue {
      * Obtener información de la cola actual
      */
     getQueueInfo() {
-        const avgDelaySeconds = (this.stats.averageDelay / 1000).toFixed(1);
-        const estimatedMinTime = this.queue.length * this.config.minDelay;
-        const estimatedMaxTime = this.queue.length * this.config.maxDelay;
-        
+        // Validar que stats exista y tenga averageDelay
+        let avgDelaySeconds = 0;
+        if (this.stats && typeof this.stats.averageDelay !== 'undefined') {
+            avgDelaySeconds = (this.stats.averageDelay / 1000).toFixed(1);
+        }
+        const estimatedMinTime = this.queue.length * (this.config?.minDelay || 0);
+        const estimatedMaxTime = this.queue.length * (this.config?.maxDelay || 0);
+
         return {
             queueSize: this.queue.length,
             isProcessing: this.isProcessing,
