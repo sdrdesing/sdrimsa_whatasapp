@@ -96,7 +96,7 @@ services:
       - redis
     networks:
       - appnet
-    command: sh -c "npm install --production && npm start"
+    command: sh -lc "apk add --no-cache git && npm install --omit=dev && npm start"
     environment:
       NODE_ENV: production
 
