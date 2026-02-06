@@ -8,10 +8,10 @@ services:
     env_file:
       - .env.production
     volumes:
-      - app-data:/var/www
       - ./.env.production:/var/www/.env
-      - ./storage:/var/www/storage
       - ./public/build:/var/www/public/build
+      - /var/www/sdrimsacbot:/var/www
+      - /var/www/sdrimsacbot/.env.production:/var/www/.env
     expose:
       - "9000"
     depends_on:
@@ -32,7 +32,8 @@ services:
     env_file:
       - .env.production
     volumes:
-      - ./storage:/var/www/storage
+      - /var/www/sdrimsacbot:/var/www
+      - /var/www/sdrimsacbot/.env.production:/var/www/.env
     depends_on:
       - mysql
       - redis
@@ -48,7 +49,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - app-data:/var/www
+      - /var/www/sdrimsacbot:/var/www
       - ./docker/nginx/production.conf:/etc/nginx/conf.d/default.conf
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./public/build:/var/www/public/build
@@ -103,7 +104,6 @@ services:
 volumes:
   mysql_data:
   redis_data:
-  app-data:
 
 networks:
   appnet:
