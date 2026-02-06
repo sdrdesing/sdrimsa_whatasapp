@@ -52,6 +52,7 @@ services:
       - ./docker/nginx/production.conf:/etc/nginx/conf.d/default.conf
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./public/build:/var/www/public/build
+      - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - app
       - baileys
