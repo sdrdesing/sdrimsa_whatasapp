@@ -200,16 +200,6 @@ class WhatsappController extends Controller
             // Prioridad: por extensión -> por contenido -> header remoto -> octet-stream
             $mimeType = $mimeByExt ?: $detectedMime ?: $headerMime ?: 'application/octet-stream';
 
-            Log::info('send_media: preparado archivo para enviar', [
-                'number' => $request->number,
-                'file_name' => $fileName,
-                'extension' => $ext,
-                'header_mime' => $headerMime,
-                'detected_mime' => $detectedMime,
-                'selected_mime' => $mimeType,
-                'tenant_channel' => $socketChannel,
-                'source' => $usingBase64 ? 'base64' : 'url',
-            ]);
 
             $response = Http::timeout(30)
                 ->attach('file', $fileBody, $fileName, ['Content-Type' => $mimeType])

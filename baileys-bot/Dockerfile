@@ -3,6 +3,7 @@ FROM node:20-alpine
 
 # Instalar dependencias del sistema para Baileys
 RUN apk add --no-cache \
+    git \
     chromium \
     nss \
     freetype \
