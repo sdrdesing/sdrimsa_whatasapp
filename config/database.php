@@ -67,7 +67,7 @@ return [
         'central' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),
-            'host' => env('CENTRAL_DB_HOST', '127.0.0.1'),
+            'host' => env('CENTRAL_DB_HOST', 'mysql'),
             'port' => env('CENTRAL_DB_PORT', '3306'),
             'database' => env('CENTRAL_DB_DATABASE', 'sdrimsacbot'),
             'username' => env('CENTRAL_DB_USERNAME', 'root'),
