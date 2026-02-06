@@ -1,4 +1,4 @@
-cd /var/www/sdrimsacbot
+cd /var/www/sdrimsacbot || exit 1
 
 # 1. Crear .env.production si no existe
 if [ ! -f ".env.production" ]; then
@@ -8,11 +8,13 @@ APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:gURgrvfW8HLNz/GLI2i9Xk0b47+aSzt3GNOLatBqjJ8=
 APP_URL=https://sdrimsac.xyz
+
 DB_HOST=mysql
 DB_DATABASE=sdrimsacbot
 DB_USERNAME=sdrimsac
 DB_PASSWORD=Sdrimsac@2026!
 DB_ROOT_PASSWORD=root
+
 CACHE_DRIVER=redis
 QUEUE_CONNECTION=redis
 REDIS_HOST=redis
@@ -21,28 +23,37 @@ WHATSAPP_NODE_URL=http://baileys:3000
 EOF
 fi
 
-# 2. Detener contenedores
+# 2. Cargar variables del .env.production para usarlas en el script
+set -a
+source .env.production
+set +a
+
+# 3. Detener contenedores
 docker compose -f docker-compose.production.yml down --remove-orphans
 
-# 3. Construir
+# 4. Construir
 docker compose -f docker-compose.production.yml build --no-cache
 
-# 4. Levantar servicios
+# 5. Levantar servicios
 docker compose -f docker-compose.production.yml up -d
 
-# 4.5 Esperar a que los servicios inicien
+# 5.5 Esperar a que los servicios inicien
 echo "⏳ Esperando que los servicios inicien (30 segundos)..."
 sleep 30
 
-# 5. Esperar MySQL completamente listo
+# 6. Esperar MySQL completamente listo
 echo "⏳ Esperando MySQL..."
 MYSQL_READY=false
+
 for i in {1..150}; do
-    if docker compose -f docker-compose.production.yml exec -T sdrimsacbot-mysql mariadb -h localhost -uroot -proot -e "SELECT 1" &>/dev/null 2>&1; then
+    if docker compose -f docker-compose.production.yml exec -T mysql sh -lc \
+      "mariadb -h 127.0.0.1 -uroot -p\"$DB_ROOT_PASSWORD\" -e 'SELECT 1;'" \
+      >/dev/null 2>&1; then
         echo "✅ MySQL responde"
         MYSQL_READY=true
         break
     fi
+
     if [ $((i % 20)) -eq 0 ]; then
         echo "  Intento $i/150..."
     fi
@@ -50,9 +61,9 @@ for i in {1..150}; do
 done
 
 if [ "$MYSQL_READY" = false ]; then
-    echo "❌ Error: BD no está lista después de $i intentos"
+    echo "❌ Error: BD no está lista después de 150 intentos"
     echo "💡 Verificando logs:"
-    docker compose -f docker-compose.production.yml logs mysql | tail -20
+    docker compose -f docker-compose.production.yml logs mysql | tail -50
     exit 1
 fi
 
@@ -60,7 +71,7 @@ fi
 echo "⏳ Esperando estabilidad (20 segundos más)..."
 sleep 20
 
-# 6. Instalar dependencias
+# 7. Instalar dependencias
 echo "📦 Instalando dependencias PHP..."
 docker compose -f docker-compose.production.yml exec -T app composer install --no-dev --optimize-autoloader
 
@@ -70,13 +81,14 @@ docker compose -f docker-compose.production.yml exec -T app npm install --legacy
 echo "🔨 Compilando assets con Vite..."
 docker compose -f docker-compose.production.yml exec -T app npm run build
 
-# 7. Configurar BD
+# 8. Configurar BD
 echo "🔑 Generando APP_KEY..."
 docker compose -f docker-compose.production.yml exec -T app php artisan key:generate --force
 
 echo "⏳ Verificando conexión a BD antes de migraciones..."
 for i in {1..30}; do
-    if docker compose -f docker-compose.production.yml exec -T app php artisan tinker <<< "DB::connection()->getPdo();" &>/dev/null 2>&1; then
+    if docker compose -f docker-compose.production.yml exec -T app php artisan tinker <<< "DB::connection()->getPdo();" \
+      >/dev/null 2>&1; then
         echo "✅ Conexión a BD verificada"
         break
     fi
@@ -87,15 +99,15 @@ done
 echo "💾 Ejecutando migraciones de base de datos..."
 docker compose -f docker-compose.production.yml exec -T app php artisan migrate --force
 
-# 8. Cachear config
+# 9. Cachear config
 docker compose -f docker-compose.production.yml exec -T app php artisan config:cache
 docker compose -f docker-compose.production.yml exec -T app php artisan route:cache
 docker compose -f docker-compose.production.yml exec -T app php artisan view:cache
 
-# 9. Permisos
+# 10. Permisos
 docker compose -f docker-compose.production.yml exec -T app chown -R www-data:www-data /var/www/storage
 
-# 10. Verificar
+# 11. Verificar
 docker compose -f docker-compose.production.yml ps
 
 echo ""
@@ -111,6 +123,6 @@ echo "   URL: https://sdrimsac.xyz"
 echo ""
 echo "📋 Comandos útiles:"
 echo "   Ver logs:     docker compose -f docker-compose.production.yml logs -f app"
-echo "   BD shell:     docker compose -f docker-compose.production.yml exec mysql bash"
-echo "   App shell:    docker compose -f docker-compose.production.yml exec app bash"
+echo "   BD shell:     docker compose -f docker-compose.production.yml exec mysql sh"
+echo "   App shell:    docker compose -f docker-compose.production.yml exec app sh"
 echo "   Estado:       docker compose -f docker-compose.production.yml ps"
