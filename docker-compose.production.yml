@@ -8,10 +8,9 @@ services:
     env_file:
       - .env.production
     volumes:
-      - ./.env.production:/var/www/.env
-      - ./public/build:/var/www/public/build
-      - /var/www/sdrimsacbot:/var/www
-      - /var/www/sdrimsacbot/.env.production:/var/www/.env
+      - /var/www/sdrimsacbot/.env.production:/var/www/.env:ro
+      - /var/www/sdrimsacbot/storage:/var/www/storage
+      - /var/www/sdrimsacbot/public/build:/var/www/public/build
     expose:
       - "9000"
     depends_on:
@@ -32,8 +31,8 @@ services:
     env_file:
       - .env.production
     volumes:
-      - /var/www/sdrimsacbot:/var/www
-      - /var/www/sdrimsacbot/.env.production:/var/www/.env
+      - /var/www/sdrimsacbot/.env.production:/var/www/.env:ro
+      - /var/www/sdrimsacbot/storage:/var/www/storage
     depends_on:
       - mysql
       - redis
@@ -49,10 +48,10 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/www/sdrimsacbot:/var/www
-      - ./docker/nginx/production.conf:/etc/nginx/conf.d/default.conf
+      - /var/www/sdrimsacbot/public:/var/www/public:ro
+      - /var/www/sdrimsacbot/public/build:/var/www/public/build:ro
+      - ./docker/nginx/production.conf:/etc/nginx/conf.d/default.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./public/build:/var/www/public/build
       - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - app
