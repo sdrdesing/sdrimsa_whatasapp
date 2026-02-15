@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
 
-export default defineConfig(({ mode }) => ({
+/* export default defineConfig(({ mode }) => ({
     plugins: [
         laravel({
             input: 'resources/js/app.js',
@@ -32,4 +32,36 @@ export default defineConfig(({ mode }) => ({
         hmr: false,
         watch: { usePolling: true, interval: 100 },
     } : undefined,
-}));
+})); */
+
+export default defineConfig(({ mode }) => {
+  const isProd = mode === 'production'
+
+  return {
+    plugins: [
+      laravel({
+        input: ['resources/js/app.js'],
+        refresh: true, // en dev sí refresca
+      }),
+      vue(),
+    ],
+
+    // IMPORTANTE: base solo en producción
+    base: isProd ? '/build/' : '/',
+
+    server: {
+      host: '0.0.0.0',     // para que escuche dentro del container
+      port: 5173,
+      strictPort: true,
+
+      // CLAVE: esto es lo que verá el navegador (no 0.0.0.0)
+      hmr: {
+        host: 'sdrimsacbot.test',  // o 'localhost' si entras por localhost
+        port: 5173,
+      },
+
+      // opcional si usas polling en Windows/WSL/docker
+      watch: { usePolling: true, interval: 100 },
+    },
+  }
+});
