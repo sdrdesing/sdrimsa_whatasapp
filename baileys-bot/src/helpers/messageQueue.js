@@ -149,10 +149,10 @@ class MessageQueue {
                 queue: [],
                 isProcessing: false,
                 config: {
-                    minDelay: 1000, // Cola mucho más rápida
-                    maxDelay: 2500,
+                    minDelay: 300, // Delay mínimo reducido
+                    maxDelay: 700, // Delay máximo reducido
                     randomVariation: true,
-                    humanPattern: true,
+                    humanPattern: false, // Patrón humano desactivado por defecto
                     maxRetries: 0, // Sin reintentos
                     retryDelay: 1000
                 },
