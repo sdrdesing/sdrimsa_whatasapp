@@ -1,6 +1,6 @@
 import fs from "fs";
 import { phoneNumberFormatter } from "../helpers/formatter.js";
-import messageQueue from "../helpers/messageQueue.js";
+import getMessageQueue from "../helpers/messageQueue.js";
 
 // Mapa de sockets por tenant
 const socks = new Map();
@@ -152,8 +152,9 @@ export const sendNormalMessage = async (req, res) => {
             });
         }
 
-        // Agregar mensaje a la cola en lugar de enviar directamente
-        const promise = messageQueue.addToQueue({ type: 'text', sock: sock, tenantId, number: number, message: message });
+    // Agregar mensaje a la cola en lugar de enviar directamente
+    const messageQueue = getMessageQueue(tenantId);
+    const promise = messageQueue.addToQueue({ type: 'text', sock: sock, tenantId, number: number, message: message });
 
     console.log(`✅ Mensaje agregado a la cola para ${number} (tenant: ${tenantId})`);
 
