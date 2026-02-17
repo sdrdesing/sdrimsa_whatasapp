@@ -217,7 +217,7 @@ export const sendMedia = async (req, res) => {
         return res.status(200).json({
             status: true,
             message: "Archivo agregado a la cola de envío",
-            queueInfo: messageQueue.getQueueInfo()
+            queueInfo: messageQueue.getQueueInfo(tenantId)
         });
 
     } catch (error) {

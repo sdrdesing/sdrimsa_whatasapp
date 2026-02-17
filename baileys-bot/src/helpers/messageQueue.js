@@ -385,7 +385,7 @@ class MessageQueue {
     /**
      * Obtener información de la cola actual
      */
-    getQueueInfo() {
+    getQueueInfo(tenantId) {
         this._ensureTenant(tenantId);
         const tenant = this.tenants[tenantId];
         let avgDelaySeconds = 0;
