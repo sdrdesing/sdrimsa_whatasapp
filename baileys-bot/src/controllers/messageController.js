@@ -201,10 +201,12 @@ export const sendMedia = async (req, res) => {
             });
         }
 
-        // Agregar mensaje con archivo a la cola
+
+        // Obtener instancia de la cola para el tenant
+        const messageQueue = getMessageQueue(tenantId);
         const promise = messageQueue.addToQueue({ type: 'media', sock: sock, tenantId, number: number, file: file, caption: caption || "" });
 
-    console.log(`✅ Archivo agregado a la cola para ${number} (tenant: ${tenantId}): ${file.name}`);
+        console.log(`✅ Archivo agregado a la cola para ${number} (tenant: ${tenantId}): ${file.name}`);
 
         promise.then(result => {
             console.log(`🔔 Archivo procesado (background):`, result?.data || result);
