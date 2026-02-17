@@ -101,44 +101,18 @@ class MessageQueue {
         const queueRef = this.tenants[tenantId].queue;
         const config = this.tenants[tenantId].config;
         const stats = this.tenants[tenantId].stats;
-    while (queueRef.length > 0) {
+        while (queueRef.length > 0) {
             const item = queueRef[0];
-            if (item.waiting) {
-                const allWaiting = queueRef.every(q => q.waiting);
-                if (allWaiting) {
-                    console.log(`⏳ Todos los mensajes de ${tenantId} están esperando reconexión. Esperando 5s antes de reintentar...`);
-                    await this.sleep(5000);
-                    for (const qItem of queueRef) {
-                        if (!qItem.waiting) continue;
-                        try {
-                            const tId = qItem.data?.tenantId || tenantId;
-                            const tstate = getTenantState(tId);
-                            if (tstate && tstate.connectionStatus === 'connected') {
-                                if (tstate.sock && tstate.sock !== qItem.data.sock) {
-                                    console.log(`ℹ️ Socket para ${tId} cambió — actualizando referencia para mensaje ${qItem.id} y limpiando espera`);
-                                    qItem.data.sock = tstate.sock;
-                                }
-                                qItem.waiting = false;
-                            }
-                        } catch (err) {
-                            console.error('Error re-evaluando item en espera:', err?.message || err);
-                        }
-                    }
-                } else {
-                    queueRef.shift();
-                    queueRef.push(item);
-                }
-                continue;
-            }
             try {
                 console.log(`⏳ Procesando mensaje ${item.id} (${item.data.type}) a ${item.data.number || item.data.groupJid} para ${tenantId}`);
                 const tenantIdFromData = item.data?.tenantId || tenantId;
                 const tenantState = getTenantState(tenantIdFromData);
                 if (!tenantState || tenantState.connectionStatus !== 'connected') {
-                    console.log(`⚠️ Tenant ${tenantIdFromData} desconectado — marcando mensaje ${item.id} en espera`);
-                    item.waiting = true;
+                    console.log(`⚠️ Tenant ${tenantIdFromData} desconectado — mensaje ${item.id} marcado como fallido (no reintento)`);
+                    item.reject(new Error('Tenant desconectado'));
                     queueRef.shift();
-                    queueRef.push(item);
+                    stats.totalFailed++;
+                    stats.currentQueueSize = queueRef.length;
                     continue;
                 }
                 if (tenantState.sock && tenantState.sock !== item.data.sock) {
@@ -147,7 +121,6 @@ class MessageQueue {
                 }
                 const result = await this.sendMessage(item);
                 item.resolve(result);
-                if (item.waiting) item.waiting = false;
                 queueRef.shift();
                 stats.totalSent++;
                 stats.currentQueueSize = queueRef.length;
@@ -160,62 +133,10 @@ class MessageQueue {
                 }
             } catch (error) {
                 console.error(`❌ Error al enviar mensaje ${item.id}:`, error.message);
-                // Manejo especial para errores graves de sesión
-                if (error.message && error.message.includes('Bad MAC')) {
-                    // Control de reintentos de recuperación
-                    if (!this.sessionRecoveryAttempts[tenantId]) {
-                        this.sessionRecoveryAttempts[tenantId] = 1;
-                    } else {
-                        this.sessionRecoveryAttempts[tenantId]++;
-                    }
-                    const intento = this.sessionRecoveryAttempts[tenantId];
-                    const timestamp = new Date().toISOString();
-                    console.error(`🚨 [${timestamp}] Sesión ${tenantId} marcada como fallida por error de cifrado (Bad MAC). Intento de recuperación #${intento}/${this.MAX_SESSION_RECOVERY}`);
-                    this.tenants[tenantId].isProcessing = false;
-                    this.tenants[tenantId].failed = true;
-                    this.tenants[tenantId].queue = [];
-                    // Si supera el máximo de reintentos, no reiniciar más
-                    if (intento > this.MAX_SESSION_RECOVERY) {
-                        console.error(`🛑 [${timestamp}] Sesión ${tenantId} excedió el máximo de reintentos de recuperación por Bad MAC. Se requiere intervención manual (nuevo QR).`);
-                        break;
-                    }
-                    // Eliminar archivos de sesión y reiniciar sesión
-                    try {
-                        // Eliminar archivos de sesión
-                        const fs = await import('fs');
-                        const sessionPath = path.resolve('./session', tenantId);
-                        if (fs.existsSync(sessionPath)) {
-                            fs.rmSync(sessionPath, { recursive: true, force: true });
-                            console.log(`🗑️ [${timestamp}] Archivos de sesión eliminados para ${tenantId}`);
-                        } else {
-                            console.log(`ℹ️ [${timestamp}] No se encontraron archivos de sesión para ${tenantId}`);
-                        }
-                    } catch (err) {
-                        console.error(`Error eliminando archivos de sesión para ${tenantId}:`, err?.message || err);
-                    }
-                    try {
-                        // Reiniciar sesión automáticamente
-                        const { startBot } = await import('./startBot.js');
-                        setTimeout(() => startBot(tenantId), 2000);
-                        console.log(`🔄 [${timestamp}] Intentando reiniciar sesión para ${tenantId}...`);
-                    } catch (err) {
-                        console.error(`Error reiniciando sesión para ${tenantId}:`, err?.message || err);
-                    }
-                    break;
-                }
-                if (item.retries < config.maxRetries) {
-                    item.retries++;
-                    console.log(`🔄 Reintentando mensaje ${item.id} (intento ${item.retries}/${config.maxRetries})`);
-                    queueRef.shift();
-                    queueRef.push(item);
-                    await this.sleep(config.retryDelay);
-                } else {
-                    console.log(`💀 Mensaje ${item.id} falló después de ${config.maxRetries} intentos`);
-                    item.reject(error);
-                    queueRef.shift();
-                    stats.totalFailed++;
-                    stats.currentQueueSize = queueRef.length;
-                }
+                item.reject(error);
+                queueRef.shift();
+                stats.totalFailed++;
+                stats.currentQueueSize = queueRef.length;
             }
         }
         console.log(`✨ Cola procesada completamente para ${tenantId}`);
@@ -228,12 +149,12 @@ class MessageQueue {
                 queue: [],
                 isProcessing: false,
                 config: {
-                    minDelay: 8000,
-                    maxDelay: 20000,
+                    minDelay: 1000, // Cola mucho más rápida
+                    maxDelay: 2500,
                     randomVariation: true,
                     humanPattern: true,
-                    maxRetries: 3,
-                    retryDelay: 3000
+                    maxRetries: 0, // Sin reintentos
+                    retryDelay: 1000
                 },
                 stats: {
                     totalQueued: 0,
@@ -507,10 +428,10 @@ class MessageQueue {
      */
     setDelayPreset(preset) {
         const presets = {
-            'rapido': { min: 5000, max: 12000 },      // 5-12s (riesgoso)
-            'moderado': { min: 8000, max: 20000 },    // 8-20s (recomendado)
-            'seguro': { min: 15000, max: 35000 },     // 15-35s (muy seguro)
-            'ultra-seguro': { min: 20000, max: 45000 } // 20-45s (máxima precaución)
+            'rapido': { min: 500, max: 1500 },      // 0.5-1.5s (muy rápido)
+            'moderado': { min: 1000, max: 2500 },   // 1-2.5s (recomendado)
+            'seguro': { min: 2000, max: 4000 },     // 2-4s (seguro)
+            'ultra-seguro': { min: 4000, max: 8000 } // 4-8s (máxima precaución)
         };
         
         if (presets[preset]) {
@@ -525,7 +446,14 @@ class MessageQueue {
     // Importar getTenantState de botState para verificar estado del tenant antes de enviar
 }
 
-// Exportar una única instancia (Singleton)
-const messageQueue = new MessageQueue();
+// Exportar una función para obtener la cola de cada tenant (instancia por tenant)
+const messageQueueInstances = {};
 
-export default messageQueue;
+function getMessageQueue(tenantId = 'default') {
+    if (!messageQueueInstances[tenantId]) {
+        messageQueueInstances[tenantId] = new MessageQueue();
+    }
+    return messageQueueInstances[tenantId];
+}
+
+export default getMessageQueue;
