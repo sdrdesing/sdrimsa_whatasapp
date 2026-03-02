@@ -5,10 +5,14 @@ import { setSocket } from "../controllers/messageController.js";
 
 /**
  * Inicia una sesión de Baileys para un tenant específico.
- * @param {string} tenantId Identificador del tenant (se usa como carpeta bajo ./session)
- * @param {object} dashboardSocket Socket.IO client socket para emitir QR/estado (opcional)
+ * @param {string} tenantId
+ * @param {object} dashboardSocket
  */
-export async function startBot(tenantId = "default", dashboardSocket = null) {
+export async function startBot(tenantId, dashboardSocket = null) {
+    if (!tenantId || tenantId === "default") {
+        console.error("❌ No se permite iniciar sesión para el tenant 'default' o tenantId vacío/nulo.");
+        return null;
+    }
     try {
         console.log(`🔄 Cargando Baileys para tenant: ${tenantId}...`);
 
@@ -16,7 +20,7 @@ export async function startBot(tenantId = "default", dashboardSocket = null) {
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
         const { version } = await fetchLatestBaileysVersion();
 
-        console.log(`✅ Baileys v${version.join(".")} cargado`);
+        console.log(`✅ Baileys v${version.join(".")} cargado para tenant ${tenantId}`);
 
         const sock = makeWASocket({
             version,
