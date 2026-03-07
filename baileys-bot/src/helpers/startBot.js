@@ -2,6 +2,7 @@ import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion } from "
 import QRCode from "qrcode";
 import { botState, setTenantState } from "./botState.js";
 import { setSocket } from "../controllers/messageController.js";
+import fs from "fs";
 
 /**
  * Inicia una sesión de Baileys para un tenant específico.
@@ -16,7 +17,16 @@ export async function startBot(tenantId, dashboardSocket = null) {
     try {
         console.log(`🔄 Cargando Baileys para tenant: ${tenantId}...`);
 
+        
         const sessionDir = `./session/${tenantId}`;
+        const keysDir = `${sessionDir}/keys`;
+        if (!fs.existsSync(sessionDir)) {
+            fs.mkdirSync(sessionDir, { recursive: true });
+        }
+        if (!fs.existsSync(keysDir)) {
+            fs.mkdirSync(keysDir, { recursive: true });
+        }
+
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
         const { version } = await fetchLatestBaileysVersion();
 

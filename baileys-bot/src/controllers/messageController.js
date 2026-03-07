@@ -137,42 +137,48 @@ export const getChats = async (req, res) => {
 export const sendNormalMessage = async (req, res) => {
     try {
         const { number, message, tenantId: ten } = req.body;
-
         const tenantId = getTenantIdFromReq(req);
         const sock = getSockForTenant(tenantId);
-
         if (!sock) {
             return res.status(422).json({ status: false, message: "Bot no está conectado" });
         }
-
         if (!number || !message) {
             return res.status(400).json({
                 status: false,
                 message: "Faltan parámetros: number, message"
             });
         }
-
-    // Agregar mensaje a la cola en lugar de enviar directamente
-    const messageQueue = getMessageQueue(tenantId);
-    const promise = messageQueue.addToQueue({ type: 'text', sock: sock, tenantId, number: number, message: message });
-
-    console.log(`✅ Mensaje agregado a la cola para ${number} (tenant: ${tenantId})`);
-
-        // No esperes el resultado: responder inmediatamente al cliente.
+        // Agregar mensaje a la cola en lugar de enviar directamente
+        const messageQueue = getMessageQueue(tenantId);
+        const promise = messageQueue.addToQueue({ type: 'text', sock: sock, tenantId, number: number, message: message });
+        console.log(`✅ Mensaje agregado a la cola para ${number} (tenant: ${tenantId})`);
         // Manejar el resultado en background para logging/errores.
         promise.then(result => {
+            if (result?.error) {
+                // Detectar errores de Baileys relacionados con PreKey, ack, etc.
+                if (result.error?.message?.includes('PreKey') || result.error?.message?.includes('Invalid PreKey') || result.error?.message?.includes('received error in ack')) {
+                    console.error(`❌ Error de clave/ack en envío:`, result.error?.message);
+                }
+                // Puedes agregar lógica para reintentar o sugerir limpieza de sesión
+            }
             console.log(`🔔 Mensaje procesado (background):`, result?.data || result);
         }).catch(err => {
+            // Detectar errores de Baileys relacionados con PreKey, ack, etc.
+            if (err?.message?.includes('PreKey') || err?.message?.includes('Invalid PreKey') || err?.message?.includes('received error in ack')) {
+                console.error(`❌ Error de clave/ack en envío:`, err?.message);
+            }
             console.error(`❌ Error procesando mensaje en la cola (background):`, err?.message || err);
         });
-
         return res.status(200).json({
             status: true,
             message: "Mensaje agregado a la cola de envío",
             queueInfo: messageQueue.getQueueInfo()
         });
-
     } catch (error) {
+        // Detectar errores de Baileys relacionados con PreKey, ack, etc.
+        if (error?.message?.includes('PreKey') || error?.message?.includes('Invalid PreKey') || error?.message?.includes('received error in ack')) {
+            console.error(`❌ Error de clave/ack en envío:`, error?.message);
+        }
         console.error("Error en sendNormalMessage:", error);
         return res.status(500).json({
             status: false,
@@ -191,36 +197,39 @@ export const sendMedia = async (req, res) => {
         const file = req.files?.file;
         const tenantId = getTenantIdFromReq(req);
         const sock = getSockForTenant(tenantId);
-
         if (!sock) return res.status(422).json({ status: false, message: "Bot no está conectado" });
-
         if (!number || !file) {
             return res.status(400).json({
                 status: false,
                 message: "Faltan parámetros: number, file"
             });
         }
-
-
         // Obtener instancia de la cola para el tenant
         const messageQueue = getMessageQueue(tenantId);
         const promise = messageQueue.addToQueue({ type: 'media', sock: sock, tenantId, number: number, file: file, caption: caption || "" });
-
         console.log(`✅ Archivo agregado a la cola para ${number} (tenant: ${tenantId}): ${file.name}`);
-
         promise.then(result => {
+            if (result?.error) {
+                if (result.error?.message?.includes('PreKey') || result.error?.message?.includes('Invalid PreKey') || result.error?.message?.includes('received error in ack')) {
+                    console.error(`❌ Error de clave/ack en envío de media:`, result.error?.message);
+                }
+            }
             console.log(`🔔 Archivo procesado (background):`, result?.data || result);
         }).catch(err => {
+            if (err?.message?.includes('PreKey') || err?.message?.includes('Invalid PreKey') || err?.message?.includes('received error in ack')) {
+                console.error(`❌ Error de clave/ack en envío de media:`, err?.message);
+            }
             console.error(`❌ Error procesando archivo en la cola (background):`, err?.message || err);
         });
-
         return res.status(200).json({
             status: true,
             message: "Archivo agregado a la cola de envío",
             queueInfo: messageQueue.getQueueInfo(tenantId)
         });
-
     } catch (error) {
+        if (error?.message?.includes('PreKey') || error?.message?.includes('Invalid PreKey') || error?.message?.includes('received error in ack')) {
+            console.error(`❌ Error de clave/ack en envío de media:`, error?.message);
+        }
         console.error("Error en sendMedia:", error);
         return res.status(500).json({
             status: false,

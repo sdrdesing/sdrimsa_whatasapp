@@ -109,7 +109,15 @@ class MessageQueue {
                 const tenantState = getTenantState(tenantIdFromData);
                 if (!tenantState || tenantState.connectionStatus !== 'connected') {
                     console.log(`⚠️ Tenant ${tenantIdFromData} desconectado — mensaje ${item.id} marcado como fallido (no reintento)`);
-                    item.reject(new Error('Tenant desconectado'));
+                    item.reject({
+                        status: false,
+                        error: 'Tenant desconectado',
+                        message: 'El bot está desconectado o la sesión no es válida',
+                        queueId: item.id,
+                        number: item.data.number || null,
+                        groupJid: item.data.groupJid || null,
+                        type: item.data.type
+                    });
                     queueRef.shift();
                     stats.totalFailed++;
                     stats.currentQueueSize = queueRef.length;
@@ -127,16 +135,50 @@ class MessageQueue {
                 console.log(`✅ Mensaje enviado exitosamente (${queueRef.length} restantes en cola para ${tenantId})`);
                 if (queueRef.length > 0) {
                     const dynamicDelay = this.calculateDynamicDelay(tenantId);
-                    console.log(`⏱️ Esperando ${dynamicDelay}ms (${(dynamicDelay/1000).toFixed(1)}s) antes del siguiente mensaje para ${tenantId}...`);
+                    console.log(`⏱️ Esperando ${dynamicDelay}ms (${(dynamicDelay / 1000).toFixed(1)}s) antes del siguiente mensaje para ${tenantId}...`);
                     this.tenants[tenantId].lastSendTime = Date.now();
                     await this.sleep(dynamicDelay);
                 }
             } catch (error) {
-                console.error(`❌ Error al enviar mensaje ${item.id}:`, error.message);
-                item.reject(error);
+                // Notificar al frontend el motivo del fallo
+                let errorMsg = error?.message || error;
+                let errorType = 'unknown';
+                let criticalSessionError = false;
+                if (errorMsg.includes('PreKey') || errorMsg.includes('Invalid PreKey')) {
+                    errorType = 'prekey';
+                    criticalSessionError = true;
+                } else if (errorMsg.includes('received error in ack')) {
+                    errorType = 'ack';
+                    criticalSessionError = true;
+                } else if (errorMsg.includes('Connection Closed')) {
+                    errorType = 'connection';
+                    criticalSessionError = true;
+                } else if (errorMsg.includes('Bad MAC') || errorMsg.includes('SessionError')) {
+                    errorType = 'session';
+                    criticalSessionError = true;
+                }
+                console.error(`❌ Error al enviar mensaje ${item.id}:`, errorMsg);
+                item.reject({
+                    status: false,
+                    error: errorType,
+                    message: errorMsg,
+                    queueId: item.id,
+                    number: item.data.number || null,
+                    groupJid: item.data.groupJid || null,
+                    type: item.data.type
+                });
                 queueRef.shift();
                 stats.totalFailed++;
                 stats.currentQueueSize = queueRef.length;
+                // Si es error crítico de sesión, borrar sesión automáticamente
+                if (criticalSessionError) {
+                    const { deleteSession } = await import('../controllers/messageController.js');
+                    // Simular request y response para borrar sesión
+                    const fakeReq = { headers: { 'x-tenant-id': tenantId } };
+                    const fakeRes = { status: () => ({ json: () => { } }) };
+                    await deleteSession(fakeReq, fakeRes);
+                    console.warn(`🗑️ Sesión del tenant ${tenantId} eliminada automáticamente por error crítico.`);
+                }
             }
         }
         console.log(`✨ Cola procesada completamente para ${tenantId}`);
@@ -178,17 +220,17 @@ class MessageQueue {
      */
     async sendMessage(item) {
         const { sock, data } = item;
-        
+
         switch (data.type) {
             case 'text':
                 return await this.sendTextMessage(item);
-            
+
             case 'media':
                 return await this.sendMediaMessage(item);
-            
+
             case 'group':
                 return await this.sendGroupMessage(item);
-            
+
             default:
                 throw new Error(`Tipo de mensaje desconocido: ${data.type}`);
         }
@@ -228,7 +270,7 @@ class MessageQueue {
     async sendMediaMessage(item) {
         const { data } = item;
         const jid = data.number.includes("@") ? data.number : `${data.number}@c.us`;
-        
+
         let messageContent = {};
         const file = data.file;
         let mimeType = file.mimetype || "";
@@ -267,7 +309,7 @@ class MessageQueue {
             selectedMime: mimeType,
             ext
         });
-        
+
         if (mimeType.startsWith("image/")) {
             messageContent = {
                 image: file.data,
@@ -293,7 +335,7 @@ class MessageQueue {
                 caption: data.caption || ""
             };
         }
-        
+
         // Verificar socket activo antes de enviar
         const tId = data?.tenantId || 'default';
         const tstate = getTenantState(tId);
@@ -303,7 +345,7 @@ class MessageQueue {
         }
 
         const response = await data.sock.sendMessage(jid, messageContent);
-        
+
         return {
             status: true,
             response: response,
@@ -368,17 +410,17 @@ class MessageQueue {
      */
     clearQueue() {
         const canceledCount = this.queue.length;
-        
+
         // Rechazar todos los mensajes pendientes
         this.queue.forEach(item => {
             item.reject(new Error('Cola cancelada manualmente'));
         });
-        
+
         this.queue = [];
         this.stats.currentQueueSize = 0;
-        
+
         console.log(`🗑️ Cola limpiada (${canceledCount} mensajes cancelados)`);
-        
+
         return { canceled: canceledCount };
     }
 
@@ -433,7 +475,7 @@ class MessageQueue {
             'seguro': { min: 2000, max: 4000 },     // 2-4s (seguro)
             'ultra-seguro': { min: 4000, max: 8000 } // 4-8s (máxima precaución)
         };
-        
+
         if (presets[preset]) {
             this.config.minDelay = presets[preset].min;
             this.config.maxDelay = presets[preset].max;

@@ -4,6 +4,7 @@ import { io as ioClient } from "socket.io-client";
 const SDRIMSAC_BOT_URL = process.env.SDRIMSAC_BOT_URL || "https://sdrimsac.xyz";
 
 let sdrimsacSocket = null;
+let eventBuffer = [];
 let isConnected = false;
 
 /**
@@ -22,11 +23,19 @@ export const initSdrimsacConnection = () => {
         sdrimsacSocket.on("connect", () => {
             isConnected = true;
             console.log("✅ Conectado a sdrimsacbot en", SDRIMSAC_BOT_URL);
+            // Emitir eventos pendientes del buffer
+            if (eventBuffer.length > 0) {
+                eventBuffer.forEach(({ event, data, callback }) => {
+                    sdrimsacSocket.emit(event, data, callback);
+                    console.log(`📤 Evento buffered enviado a sdrimsacbot:`, event, data);
+                });
+                eventBuffer = [];
+            }
         });
 
-        sdrimsacSocket.on("disconnect", () => {
+        sdrimsacSocket.on("disconnect", (reason) => {
             isConnected = false;
-            console.log("❌ Desconectado de sdrimsacbot");
+            console.log("❌ Desconectado de sdrimsacbot. Motivo:", reason);
         });
 
         sdrimsacSocket.on("connect_error", (error) => {
@@ -44,12 +53,20 @@ export const initSdrimsacConnection = () => {
  * @param {object} data - Datos a enviar
  */
 export const emitToSdrimsac = (event, data) => {
+    // Permitir callback opcional para confirmación
+    let callback = null;
+    if (typeof data === 'object' && data && data._callback && typeof data._callback === 'function') {
+        callback = data._callback;
+        delete data._callback;
+    }
     if (sdrimsacSocket && isConnected) {
-        sdrimsacSocket.emit(event, data);
+        sdrimsacSocket.emit(event, data, callback);
         console.log(`📤 Evento enviado a sdrimsacbot:`, event, data);
         return true;
     } else {
-        console.warn(`⚠️ No conectado a sdrimsacbot para emitir: ${event}`);
+        // Guardar en buffer para emitir cuando se reconecte
+        eventBuffer.push({ event, data, callback });
+        console.warn(`⚠️ No conectado a sdrimsacbot para emitir: ${event}. Evento guardado en buffer.`);
         return false;
     }
 };
