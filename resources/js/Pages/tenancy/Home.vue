@@ -14,7 +14,7 @@ onMounted(async () => {
     socketChannelRef.value = socketChannelValue;
     console.log('🔑 socket_channel (mount) ->', socketChannelValue);
 
-    const host = window.location.host; // ej: sdrimsac.xyz o demito.sdrimsac.xyz
+    const host = window.location.host; // ej: sdrimsac.site o demito.sdrimsac.site
     const socketUrl = `${window.location.origin}`; // esto incluye protocolo + host
 
     socket = io(socketUrl, {

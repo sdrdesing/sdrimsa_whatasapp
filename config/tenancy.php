@@ -22,9 +22,10 @@ return [
     ], */
 
     'central_domains' => [
+        'localhost',
+        'sdrimsac.site',
+        'www.sdrimsac.site',
         parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost',
-        // Si necesitas un subdominio administrativo dinámico:
-        /* 'admin.' . parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST), */
     ],
 
     /**

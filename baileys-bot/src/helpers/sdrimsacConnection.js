@@ -1,7 +1,7 @@
 import { io as ioClient } from "socket.io-client";
 
 // URL del servicio sdrimsacbot
-const SDRIMSAC_BOT_URL = process.env.SDRIMSAC_BOT_URL || "https://sdrimsac.xyz";
+const SDRIMSAC_BOT_URL = process.env.SDRIMSAC_BOT_URL || "https://sdrimsac.site";
 
 let sdrimsacSocket = null;
 let eventBuffer = [];

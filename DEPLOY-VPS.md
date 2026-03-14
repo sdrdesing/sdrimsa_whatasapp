@@ -7,7 +7,7 @@
 git push origin main
 
 # 2. VPS: Conectar
-ssh root@sdrimsac.xyz
+ssh root@sdrimsac.site
 
 # 3. VPS: Ejecutar deploy
 cd /var/www/sdrimsacbot
@@ -20,7 +20,7 @@ bash deploy.sh
 
 ### 1. Conectarse al VPS
 ```bash
-ssh root@sdrimsac.xyz
+ssh root@sdrimsac.site
 cd /var/www/sdrimsacbot
 ```
 
@@ -39,7 +39,7 @@ APP_NAME=sdrimsacbot
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:gURgrvfW8HLNz/GLI2i9Xk0b47+aSzt3GNOLatBqjJ8=
-APP_URL=https://sdrimsac.xyz
+APP_URL=https://sdrimsac.site
 
 DB_CONNECTION=mysql
 DB_HOST=sdrimsacbot-mysql
@@ -134,9 +134,9 @@ docker-compose -f docker-compose.production.yml exec -T app chown -R www-data:ww
 apt install -y certbot python3-certbot-nginx
 
 certbot certonly --standalone \
-  -d sdrimsac.xyz \
-  -d www.sdrimsac.xyz \
-  --email admin@sdrimsac.xyz \
+  -d sdrimsac.site \
+  -d www.sdrimsac.site \
+  --email admin@sdrimsac.site \
   --agree-tos \
   -n
 ```
@@ -149,7 +149,7 @@ docker-compose -f docker-compose.production.yml restart nginx
 docker-compose -f docker-compose.production.yml logs -f app
 
 # Probar
-curl -I https://sdrimsac.xyz
+curl -I https://sdrimsac.site
 ```
 
 ---
