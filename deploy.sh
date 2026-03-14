@@ -8,7 +8,7 @@ APP_NAME=sdrimsacbot
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:gURgrvfW8HLNz/GLI2i9Xk0b47+aSzt3GNOLatBqjJ8=
-APP_URL=https://sdrimsac.xyz
+APP_URL=https://sdrimsac.site
 
 DB_HOST=mysql
 DB_DATABASE=sdrimsacbot
@@ -120,7 +120,7 @@ echo "Estado de servicios:"
 docker compose -f docker-compose.production.yml ps
 echo ""
 echo "🌐 Acceso:"
-echo "   URL: https://sdrimsac.xyz"
+echo "   URL: https://sdrimsac.site"
 echo ""
 echo "📋 Comandos útiles:"
 echo "   Ver logs:     docker compose -f docker-compose.production.yml logs -f app"
