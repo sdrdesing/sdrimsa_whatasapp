@@ -1,4 +1,5 @@
 cd /var/www/sdrimsacbot || exit 1
+set -e
 
 # 1. Crear .env.production si no existe
 if [ ! -f ".env.production" ]; then
