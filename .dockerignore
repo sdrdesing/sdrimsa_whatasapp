@@ -1,0 +1,16 @@
+node_modules
+vendor
+.git
+.env
+storage/*.key
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+auth.json
+.vscode
+.idea
+baileys-bot/node_modules
+baileys-bot/session
+baileys-bot/uploads

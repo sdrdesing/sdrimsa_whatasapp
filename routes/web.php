@@ -34,6 +34,7 @@ foreach (config('tenancy.central_domains') as $domain) {
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
         Route::resource('tenants', \App\Http\Controllers\TenantController::class);
+        Route::get('/global-status', [\App\Http\Controllers\Tenant\WhatsappController::class, 'globalStatus'])->name('system.global_status');
     });
 
     /* require __DIR__.'/auth.php'; */

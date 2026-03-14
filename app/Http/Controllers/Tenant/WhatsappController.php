@@ -41,6 +41,18 @@ class WhatsappController extends Controller
             ], 500);
         }
     }
+
+    public function globalStatus()
+    {
+        try {
+            return Http::get($this->baseUrl() . '/global-status')->json();
+        } catch (\Exception $e) {
+            Log::error('Error en globalStatus: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al obtener estado global: ' . $e->getMessage()
+            ], 500);
+        }
+    }
     
     public function deleteSession(Request $request)
     {
@@ -218,32 +230,4 @@ class WhatsappController extends Controller
             ], 500);
         }
     }
-
-
-
-    /* public function send(Request $request)
-    {
-        return Http::post($this->baseUrl() . '/api/send-messages', [
-            'number' => $request->number,
-            'message' => $request->message,
-        ])->json();
-    }
-    public function qr()
-    {
-        return Http::get('http://whatsapp:3001/api/qr')->json();
-    } */
-
-    public function restart()
-    {
-        return Http::post('http://whatsapp:3001/api/restart')->json();
-    }
-
-    /* public function send_media(Request $request)
-    {
-        return Http::post('http://whatsapp:3001/api/send-medias', [
-            'number' => $request->number,
-            'caption' => $request->caption,
-            'media_url' => $request->media_url,
-        ])->json();
-    } */
 }

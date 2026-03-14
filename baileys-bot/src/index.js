@@ -5,7 +5,7 @@ import fileUpload from "express-fileupload";
 import path from "path";
 import { fileURLToPath } from "url";
 import { startBot } from "./helpers/startBot.js"
-import { botState, getTenantState } from "./helpers/botState.js";
+import { botState, getTenantState, deleteTenantState, getGlobalStats } from "./helpers/botState.js";
 import http from "http";
 import { Server as IOServer } from "socket.io";
 
@@ -64,7 +64,7 @@ app.get("/status", (req, res) => {
             connectionStatus: tstate?.connectionStatus || 'disconnected',
             uptime: uptime,
             uptimeFormatted: uptimeFormatted,
-            messageStats: botState.messageStats,
+            messageStats: tstate?.messageStats || { sent: 0, received: 0 },
             phoneNumber: tstate?.botInfo?.phoneNumber || null,
             timestamp: new Date().toISOString()
         });
@@ -77,6 +77,28 @@ app.get("/status", (req, res) => {
         uptimeFormatted: uptimeFormatted,
         messageStats: botState.messageStats,
         phoneNumber: null,
+        timestamp: new Date().toISOString()
+    });
+});
+
+
+
+// ============================================================
+// ENDPOINT - ESTADO GLOBAL (Para Dashboard Admin)
+// ============================================================
+app.get("/global-status", (req, res) => {
+    const uptime = Math.floor((new Date() - botState.botInfo.startTime) / 1000);
+    const uptimeFormatted = formatUptime(uptime);
+    
+    const { totalSent, totalReceived, activeBots } = getGlobalStats();
+    
+    res.json({
+        uptime,
+        uptimeFormatted,
+        totalSent,
+        totalReceived,
+        activeBots,
+        logs: botState.globalLogs,
         timestamp: new Date().toISOString()
     });
 });
@@ -156,6 +178,7 @@ server.listen(PORT, () => {
     console.log(`📍 URL: http://localhost:${PORT}`);
     console.log(`📊 Dashboard disponible`);
     console.log(`📡 API REST lista`);
+    console.log(`ℹ️  Bot se iniciará cuando un tenant lo solicite via Socket.IO`);
     console.log("");
-    startBot();
+    
 });

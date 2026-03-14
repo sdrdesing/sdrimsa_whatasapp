@@ -1,7 +1,7 @@
 /**
- * Formatea un número de teléfono al formato correcto de WhatsApp
+ * Formatea un número de teléfono al formato correcto de WhatsApp (Baileys v7+)
  * @param {string} number - Número de teléfono a formatear
- * @returns {string} - Número formateado
+ * @returns {string} - Número formateado con @s.whatsapp.net
  */
 export const phoneNumberFormatter = (number) => {
     // Eliminar todos los caracteres no numéricos
@@ -12,9 +12,9 @@ export const phoneNumberFormatter = (number) => {
         formatted = formatted.substring(1);
     }
 
-    // Si el número no tiene el formato @c.us o @g.us, añadir @c.us
+    // Baileys v7+ usa @s.whatsapp.net para contactos individuales
     if (!formatted.includes("@")) {
-        formatted = `${formatted}@c.us`;
+        formatted = `${formatted}@s.whatsapp.net`;
     }
 
     return formatted;
@@ -23,11 +23,11 @@ export const phoneNumberFormatter = (number) => {
 /**
  * Formatea un JID de grupo
  * @param {string} groupId - ID del grupo
- * @returns {string} - JID formateado para grupos
+ * @returns {string} - JID formateado para grupos (@g.us)
  */
 export const groupJidFormatter = (groupId) => {
     let formatted = groupId.replace(/\D/g, "");
-    
+
     if (!formatted.includes("@")) {
         formatted = `${formatted}@g.us`;
     }

@@ -1,11 +1,29 @@
 import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
-import { botState, setTenantState } from "./botState.js";
+import { botState, setTenantState, getTenantState } from "./botState.js";
 import { setSocket } from "../controllers/messageController.js";
 import fs from "fs";
 
+// Control de reconexiones por tenant
+const reconnectAttempts = new Map();
+const MAX_RECONNECT_ATTEMPTS = 10;
+const BASE_RECONNECT_DELAY = 3000; // 3 seconds
+const MAX_RECONNECT_DELAY = 60000; // 60 seconds
+
+/**
+ * Calcula delay con backoff exponencial
+ */
+function getReconnectDelay(tenantId) {
+    const attempts = reconnectAttempts.get(tenantId) || 0;
+    const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, attempts), MAX_RECONNECT_DELAY);
+    // Agregar jitter (±20%) para evitar thundering herd
+    const jitter = delay * 0.2 * (Math.random() * 2 - 1);
+    return Math.floor(delay + jitter);
+}
+
 /**
  * Inicia una sesión de Baileys para un tenant específico.
+ * Compatible con Baileys v7+
  * @param {string} tenantId
  * @param {object} dashboardSocket
  */
@@ -17,7 +35,6 @@ export async function startBot(tenantId, dashboardSocket = null) {
     try {
         console.log(`🔄 Cargando Baileys para tenant: ${tenantId}...`);
 
-        
         const sessionDir = `./session/${tenantId}`;
         const keysDir = `${sessionDir}/keys`;
         if (!fs.existsSync(sessionDir)) {
@@ -42,8 +59,7 @@ export async function startBot(tenantId, dashboardSocket = null) {
         // Registrar socket en el controlador por tenant
         setSocket(tenantId, sock);
 
-        // Guardar referencia en el estado del tenant para que dashboards
-        // puedan consultarlo sin pisar otros tenants
+        // Guardar referencia en el estado del tenant
         try {
             setTenantState(tenantId, { sock });
         } catch (e) {
@@ -59,11 +75,7 @@ export async function startBot(tenantId, dashboardSocket = null) {
                 try {
                     const dataUrl = await QRCode.toDataURL(qr, botState.qrOptions);
                     console.log(`✅ QR generado en ${Date.now() - start}ms`);
-                    // Guardar QR generado en estado global para que otros sockets
-                    // (dashboard) puedan solicitarlo/recibirlo al conectarse
-                    // Guardar QR en el estado del tenant
                     setTenantState(tenantId, { qrCode: dataUrl });
-                    // Emitir por socket al dashboard si está conectado
                     if (dashboardSocket) {
                         dashboardSocket.emit("qr", { tenantId, qr: dataUrl });
                     }
@@ -79,6 +91,9 @@ export async function startBot(tenantId, dashboardSocket = null) {
 
             if (connection === "open") {
                 console.log(`✅ [${tenantId}] BOT CONECTADO`);
+                // Resetear contador de reconexiones al conectar exitosamente
+                reconnectAttempts.set(tenantId, 0);
+
                 if (sock.user) {
                     const phoneNumber = sock.user.id.split(":")[0];
                     if (dashboardSocket) dashboardSocket.emit("connected", { tenantId, phoneNumber });
@@ -89,15 +104,32 @@ export async function startBot(tenantId, dashboardSocket = null) {
             }
 
             if (connection === "close") {
-                const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== 401;
-                console.log(`❌ [${tenantId}] Conexión cerrada`);
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
+                const shouldReconnect = statusCode !== 401;
+                console.log(`❌ [${tenantId}] Conexión cerrada (código: ${statusCode || 'desconocido'})`);
+
                 if (dashboardSocket) dashboardSocket.emit("status", { tenantId, status: "disconnected" });
                 setTenantState(tenantId, { isAuthenticated: false, connectionStatus: 'disconnected' });
+
                 if (shouldReconnect) {
-                    console.log(`🔄 [${tenantId}] Reintentando en 3 segundos...`);
-                    setTimeout(() => startBot(tenantId, dashboardSocket), 3000);
+                    const attempts = (reconnectAttempts.get(tenantId) || 0) + 1;
+                    reconnectAttempts.set(tenantId, attempts);
+
+                    if (attempts > MAX_RECONNECT_ATTEMPTS) {
+                        console.error(`🚫 [${tenantId}] Máximo de reconexiones alcanzado (${MAX_RECONNECT_ATTEMPTS}). Deteniendo.`);
+                        if (dashboardSocket) dashboardSocket.emit("error", {
+                            tenantId,
+                            message: `Se alcanzó el máximo de ${MAX_RECONNECT_ATTEMPTS} reconexiones. Elimina la sesión y escanea un nuevo QR.`
+                        });
+                        return;
+                    }
+
+                    const delay = getReconnectDelay(tenantId);
+                    console.log(`🔄 [${tenantId}] Reintento ${attempts}/${MAX_RECONNECT_ATTEMPTS} en ${(delay / 1000).toFixed(1)}s...`);
+                    setTimeout(() => startBot(tenantId, dashboardSocket), delay);
                 } else {
-                    console.log(`⚠️  [${tenantId}] Sesión eliminada - Escanea nuevo QR`);
+                    console.log(`⚠️  [${tenantId}] Sesión eliminada por WhatsApp (401) - Escanea nuevo QR`);
+                    reconnectAttempts.set(tenantId, 0);
                     if (dashboardSocket) dashboardSocket.emit("session-deleted", { tenantId });
                 }
             }
@@ -108,7 +140,8 @@ export async function startBot(tenantId, dashboardSocket = null) {
         sock.ev.on("messages.upsert", async (m) => {
             const message = m.messages[0];
             if (!message.key.fromMe && message.message) {
-                botState.messageStats.received++;
+                const tstate = getTenantState(tenantId);
+                tstate.messageStats.received++;
                 const from = message.key.remoteJid;
                 const text = message.message.conversation || message.message.extendedTextMessage?.text || "[Multimedia]";
                 console.log(`📨 [${tenantId}] ${from}: ${text}`);
@@ -119,8 +152,16 @@ export async function startBot(tenantId, dashboardSocket = null) {
 
     } catch (error) {
         console.error("❌ Error crítico al iniciar bot:", error);
-        console.log("🔄 Reintentando en 5 segundos...");
-        setTimeout(() => startBot(tenantId, dashboardSocket), 5000);
+        const attempts = (reconnectAttempts.get(tenantId) || 0) + 1;
+        reconnectAttempts.set(tenantId, attempts);
+
+        if (attempts > MAX_RECONNECT_ATTEMPTS) {
+            console.error(`🚫 [${tenantId}] Máximo de reconexiones alcanzado después de error crítico.`);
+            return null;
+        }
+
+        const delay = getReconnectDelay(tenantId);
+        console.log(`🔄 Reintentando en ${(delay / 1000).toFixed(1)}s...`);
+        setTimeout(() => startBot(tenantId, dashboardSocket), delay);
     }
 }
-

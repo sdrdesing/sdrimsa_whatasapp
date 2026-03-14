@@ -1,0 +1,7 @@
+node_modules
+session
+uploads
+npm-debug.log
+.git
+.vscode
+.idea

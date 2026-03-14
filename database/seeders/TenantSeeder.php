@@ -14,7 +14,6 @@ class TenantSeeder extends Seeder
     public function run(): void
     {
         try {
-            Log::info("Starting TenantSeeder");
             
             $user = \App\Models\User::firstOrCreate(
                 ['email' => 'admin@gmail.com'],

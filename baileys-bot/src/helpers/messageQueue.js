@@ -1,18 +1,16 @@
 /**
  * Sistema de Cola de Mensajes para evitar límites de WhatsApp
  * Implementa un queue que envía mensajes de forma secuencial con delay
+ * Compatible con Baileys v7+ (@s.whatsapp.net para JIDs)
  */
 
-import { getTenantState } from "./botState.js";
+import { getTenantState, addGlobalLog } from "./botState.js";
 import path from "path";
 
 class MessageQueue {
     constructor() {
-        // Estructura: { [tenantId]: { queue, isProcessing, config, stats, lastSendTime, consecutiveMessages, sessionRecoveryAttempts } }
+        // Estructura: { [tenantId]: { queue, isProcessing, config, stats, lastSendTime, consecutiveMessages } }
         this.tenants = {};
-        // Control de reintentos de recuperación de sesión por Bad MAC
-        this.sessionRecoveryAttempts = {};
-        this.MAX_SESSION_RECOVERY = 3;
     }
 
     /**
@@ -98,91 +96,112 @@ class MessageQueue {
             return;
         }
         this.tenants[tenantId].isProcessing = true;
-        const queueRef = this.tenants[tenantId].queue;
-        const config = this.tenants[tenantId].config;
-        const stats = this.tenants[tenantId].stats;
-        while (queueRef.length > 0) {
-            const item = queueRef[0];
+        const tenant = this.tenants[tenantId];
+
+        while (tenant.queue.length > 0) {
+            const item = tenant.queue[0];
             try {
                 console.log(`⏳ Procesando mensaje ${item.id} (${item.data.type}) a ${item.data.number || item.data.groupJid} para ${tenantId}`);
+
+                // Verificar estado del tenant
                 const tenantIdFromData = item.data?.tenantId || tenantId;
                 const tenantState = getTenantState(tenantIdFromData);
                 if (!tenantState || tenantState.connectionStatus !== 'connected') {
-                    console.log(`⚠️ Tenant ${tenantIdFromData} desconectado — mensaje ${item.id} marcado como fallido (no reintento)`);
+                    console.log(`⚠️ Tenant ${tenantIdFromData} desconectado — mensaje ${item.id} marcado como fallido`);
+                    const error = 'El bot está desconectado o la sesión no es válida';
+                    addGlobalLog(tenantIdFromData, item.data.type, item.data.number || item.data.groupJid, 'failed', error);
                     item.reject({
                         status: false,
                         error: 'Tenant desconectado',
-                        message: 'El bot está desconectado o la sesión no es válida',
+                        message: error,
                         queueId: item.id,
                         number: item.data.number || null,
                         groupJid: item.data.groupJid || null,
                         type: item.data.type
                     });
-                    queueRef.shift();
-                    stats.totalFailed++;
-                    stats.currentQueueSize = queueRef.length;
+                    tenant.queue.shift();
+                    tenant.stats.totalFailed++;
+                    tenant.stats.currentQueueSize = tenant.queue.length;
                     continue;
                 }
+
+                // Actualizar referencia al socket si cambió (reconexión)
                 if (tenantState.sock && tenantState.sock !== item.data.sock) {
-                    console.log(`ℹ️ Socket para ${tenantIdFromData} cambió — actualizando referencia para mensaje ${item.id}`);
+                    console.log(`ℹ️ Socket para ${tenantIdFromData} cambió — actualizando referencia`);
                     item.data.sock = tenantState.sock;
                 }
+
                 const result = await this.sendMessage(item);
+                addGlobalLog(tenantIdFromData, item.data.type, item.data.number || item.data.groupJid, 'sent');
                 item.resolve(result);
-                queueRef.shift();
-                stats.totalSent++;
-                stats.currentQueueSize = queueRef.length;
-                console.log(`✅ Mensaje enviado exitosamente (${queueRef.length} restantes en cola para ${tenantId})`);
-                if (queueRef.length > 0) {
+                tenant.queue.shift();
+                tenant.stats.totalSent++;
+                tenant.stats.currentQueueSize = tenant.queue.length;
+                // Resetear contador de errores consecutivos al enviar bien
+                tenant.consecutiveErrors = 0;
+                console.log(`✅ Mensaje enviado exitosamente (${tenant.queue.length} restantes en cola para ${tenantId})`);
+
+                if (tenant.queue.length > 0) {
                     const dynamicDelay = this.calculateDynamicDelay(tenantId);
-                    console.log(`⏱️ Esperando ${dynamicDelay}ms (${(dynamicDelay / 1000).toFixed(1)}s) antes del siguiente mensaje para ${tenantId}...`);
-                    this.tenants[tenantId].lastSendTime = Date.now();
+                    console.log(`⏱️ Esperando ${dynamicDelay}ms antes del siguiente mensaje para ${tenantId}...`);
+                    tenant.lastSendTime = Date.now();
                     await this.sleep(dynamicDelay);
                 }
             } catch (error) {
-                // Notificar al frontend el motivo del fallo
-                let errorMsg = error?.message || error;
-                let errorType = 'unknown';
-                let criticalSessionError = false;
-                if (errorMsg.includes('PreKey') || errorMsg.includes('Invalid PreKey')) {
-                    errorType = 'prekey';
-                    criticalSessionError = true;
-                } else if (errorMsg.includes('received error in ack')) {
-                    errorType = 'ack';
-                    criticalSessionError = true;
-                } else if (errorMsg.includes('Connection Closed')) {
-                    errorType = 'connection';
-                    criticalSessionError = true;
-                } else if (errorMsg.includes('Bad MAC') || errorMsg.includes('SessionError')) {
-                    errorType = 'session';
-                    criticalSessionError = true;
+                const errorMsg = typeof error === 'string' ? error : (error?.message || String(error));
+                const isCriticalSession = /PreKey|Invalid PreKey|Bad MAC|SessionError/i.test(errorMsg);
+                const isConnectionError = /Connection Closed|timed out|ECONNRESET|ECONNREFUSED/i.test(errorMsg);
+                const isRetryable = isConnectionError || /received error in ack/i.test(errorMsg);
+
+                console.error(`❌ Error al enviar mensaje ${item.id} (intento ${item.retries + 1}):`, errorMsg);
+
+                // Reintento para errores temporales
+                if (isRetryable && item.retries < tenant.config.maxRetries) {
+                    item.retries++;
+                    const retryDelay = tenant.config.retryDelay * Math.pow(2, item.retries - 1);
+                    console.log(`🔄 Reintento ${item.retries}/${tenant.config.maxRetries} en ${retryDelay}ms para mensaje ${item.id}`);
+                    await this.sleep(retryDelay);
+                    continue; // Reintentar el mismo mensaje
                 }
-                console.error(`❌ Error al enviar mensaje ${item.id}:`, errorMsg);
+
+                addGlobalLog(tenantIdFromData, item.data.type, item.data.number || item.data.groupJid, 'failed', errorMsg);
+                // Fallido definitivamente
                 item.reject({
                     status: false,
-                    error: errorType,
+                    error: isCriticalSession ? 'session' : (isConnectionError ? 'connection' : 'unknown'),
                     message: errorMsg,
                     queueId: item.id,
                     number: item.data.number || null,
                     groupJid: item.data.groupJid || null,
                     type: item.data.type
                 });
-                queueRef.shift();
-                stats.totalFailed++;
-                stats.currentQueueSize = queueRef.length;
-                // Si es error crítico de sesión, borrar sesión automáticamente
-                if (criticalSessionError) {
-                    const { deleteSession } = await import('../controllers/messageController.js');
-                    // Simular request y response para borrar sesión
-                    const fakeReq = { headers: { 'x-tenant-id': tenantId } };
-                    const fakeRes = { status: () => ({ json: () => { } }) };
-                    await deleteSession(fakeReq, fakeRes);
-                    console.warn(`🗑️ Sesión del tenant ${tenantId} eliminada automáticamente por error crítico.`);
+                tenant.queue.shift();
+                tenant.stats.totalFailed++;
+                tenant.stats.currentQueueSize = tenant.queue.length;
+
+                // Solo borrar sesión después de 3 errores críticos seguidos
+                if (isCriticalSession) {
+                    tenant.consecutiveErrors = (tenant.consecutiveErrors || 0) + 1;
+                    console.warn(`⚠️ Error crítico de sesión #${tenant.consecutiveErrors} para tenant ${tenantId}`);
+
+                    if (tenant.consecutiveErrors >= 3) {
+                        console.warn(`🗑️ Demasiados errores de sesión (${tenant.consecutiveErrors}). Eliminando sesión de ${tenantId}...`);
+                        try {
+                            const { deleteSession } = await import('../controllers/messageController.js');
+                            const fakeReq = { headers: { 'x-tenant-id': tenantId }, query: {}, body: {} };
+                            const fakeRes = { status: () => ({ json: () => { } }) };
+                            await deleteSession(fakeReq, fakeRes);
+                        } catch (delErr) {
+                            console.error(`Error borrando sesión de ${tenantId}:`, delErr?.message || delErr);
+                        }
+                        tenant.consecutiveErrors = 0;
+                        break;
+                    }
                 }
             }
         }
         console.log(`✨ Cola procesada completamente para ${tenantId}`);
-        this.tenants[tenantId].isProcessing = false;
+        tenant.isProcessing = false;
     }
 
     _ensureTenant(tenantId) {
@@ -191,12 +210,12 @@ class MessageQueue {
                 queue: [],
                 isProcessing: false,
                 config: {
-                    minDelay: 300, // Delay mínimo reducido
-                    maxDelay: 700, // Delay máximo reducido
+                    minDelay: 300,
+                    maxDelay: 700,
                     randomVariation: true,
-                    humanPattern: false, // Patrón humano desactivado por defecto
-                    maxRetries: 0, // Sin reintentos
-                    retryDelay: 1000
+                    humanPattern: false,
+                    maxRetries: 3,
+                    retryDelay: 2000
                 },
                 stats: {
                     totalQueued: 0,
@@ -206,33 +225,35 @@ class MessageQueue {
                     averageDelay: 0
                 },
                 lastSendTime: null,
-                consecutiveMessages: 0
+                consecutiveMessages: 0,
+                consecutiveErrors: 0
             };
         }
-        // Resetear contador de reintentos si la sesión se crea de cero
-        if (!this.sessionRecoveryAttempts[tenantId]) {
-            this.sessionRecoveryAttempts[tenantId] = 0;
-        }
+    }
+
+    /**
+     * Formatear JID para Baileys v7+
+     * Contactos individuales: @s.whatsapp.net
+     * Grupos: @g.us
+     */
+    formatJid(number, isGroup = false) {
+        if (number.includes("@")) return number;
+        return isGroup ? `${number}@g.us` : `${number}@s.whatsapp.net`;
     }
 
     /**
      * Enviar mensaje según el tipo
      */
     async sendMessage(item) {
-        const { sock, data } = item;
-
-        switch (data.type) {
+        switch (item.data.type) {
             case 'text':
                 return await this.sendTextMessage(item);
-
             case 'media':
                 return await this.sendMediaMessage(item);
-
             case 'group':
                 return await this.sendGroupMessage(item);
-
             default:
-                throw new Error(`Tipo de mensaje desconocido: ${data.type}`);
+                throw new Error(`Tipo de mensaje desconocido: ${item.data.type}`);
         }
     }
 
@@ -241,17 +262,20 @@ class MessageQueue {
      */
     async sendTextMessage(item) {
         const { data } = item;
-        const jid = data.number.includes("@") ? data.number : `${data.number}@c.us`;
+        const jid = this.formatJid(data.number, false);
 
-        // Verificar que el socket del tenant siga siendo el mismo y esté conectado
         const tId = data?.tenantId || 'default';
         const tstate = getTenantState(tId);
-        if (!tstate || tstate.connectionStatus !== 'connected' || tstate.sock !== data.sock) {
-            console.log(`⚠️ Socket no conectado o cambiado para tenant ${tId}, abortando envío temporalmente`);
+        if (!tstate || tstate.connectionStatus !== 'connected') {
+            throw new Error('Connection Closed');
+        }
+        const sock = tstate.sock || data.sock;
+        if (!sock) {
             throw new Error('Connection Closed');
         }
 
-        const response = await data.sock.sendMessage(jid, { text: data.message });
+        const response = await sock.sendMessage(jid, { text: data.message });
+        tstate.messageStats.sent++;
 
         return {
             status: true,
@@ -269,13 +293,12 @@ class MessageQueue {
      */
     async sendMediaMessage(item) {
         const { data } = item;
-        const jid = data.number.includes("@") ? data.number : `${data.number}@c.us`;
+        const jid = this.formatJid(data.number, false);
 
         let messageContent = {};
         const file = data.file;
         let mimeType = file.mimetype || "";
 
-        // Forzar MIME por extensión si el header es incorrecto
         const ext = (path.extname(file.name || "").toLowerCase() || "").replace(".", "");
         const mimeByExt = {
             pdf: "application/pdf",
@@ -295,57 +318,36 @@ class MessageQueue {
         };
 
         const forcedMime = mimeByExt[ext] || "";
-        if (
-            !mimeType ||
-            mimeType === "application/octet-stream" ||
-            (forcedMime && mimeType !== forcedMime)
-        ) {
+        if (!mimeType || mimeType === "application/octet-stream" || (forcedMime && mimeType !== forcedMime)) {
             mimeType = forcedMime || mimeType || "application/octet-stream";
         }
 
         console.log("🧩 sendMediaMessage: tipos detectados", {
-            fileName: file.name,
-            originalMime: file.mimetype,
-            selectedMime: mimeType,
-            ext
+            fileName: file.name, originalMime: file.mimetype, selectedMime: mimeType, ext
         });
 
         if (mimeType.startsWith("image/")) {
-            messageContent = {
-                image: file.data,
-                caption: data.caption || "",
-                mimetype: mimeType
-            };
+            messageContent = { image: file.data, caption: data.caption || "", mimetype: mimeType };
         } else if (mimeType.startsWith("video/")) {
-            messageContent = {
-                video: file.data,
-                caption: data.caption || "",
-                mimetype: mimeType
-            };
+            messageContent = { video: file.data, caption: data.caption || "", mimetype: mimeType };
         } else if (mimeType.startsWith("audio/")) {
-            messageContent = {
-                audio: file.data,
-                mimetype: mimeType
-            };
+            messageContent = { audio: file.data, mimetype: mimeType };
         } else {
-            messageContent = {
-                document: file.data,
-                mimetype: mimeType,
-                fileName: file.name,
-                caption: data.caption || ""
-            };
+            messageContent = { document: file.data, mimetype: mimeType, fileName: file.name, caption: data.caption || "" };
         }
 
-        // Verificar socket activo antes de enviar
         const tId = data?.tenantId || 'default';
         const tstate = getTenantState(tId);
-        if (!tstate || tstate.connectionStatus !== 'connected' || tstate.sock !== data.sock) {
-            console.log(`⚠️ Socket no conectado o cambiado para tenant ${tId}, abortando envío de media temporalmente`);
+        if (!tstate || tstate.connectionStatus !== 'connected') {
+            throw new Error('Connection Closed');
+        }
+        const sock = tstate.sock || data.sock;
+        if (!sock) {
             throw new Error('Connection Closed');
         }
 
-        const response = await data.sock.sendMessage(jid, messageContent);
-
+        const response = await sock.sendMessage(jid, messageContent);
+        tstate.messageStats.sent++;
         return {
             status: true,
             response: response,
@@ -364,17 +366,20 @@ class MessageQueue {
      */
     async sendGroupMessage(item) {
         const { data } = item;
-        const jid = data.groupJid.includes("@") ? data.groupJid : `${data.groupJid}@g.us`;
+        const jid = this.formatJid(data.groupJid, true);
 
-        // Verificar socket activo antes de enviar a grupo
         const tId = data?.tenantId || 'default';
         const tstate = getTenantState(tId);
-        if (!tstate || tstate.connectionStatus !== 'connected' || tstate.sock !== data.sock) {
-            console.log(`⚠️ Socket no conectado o cambiado para tenant ${tId}, abortando envío a grupo temporalmente`);
+        if (!tstate || tstate.connectionStatus !== 'connected') {
+            throw new Error('Connection Closed');
+        }
+        const sock = tstate.sock || data.sock;
+        if (!sock) {
             throw new Error('Connection Closed');
         }
 
-        const response = await data.sock.sendMessage(jid, { text: data.message });
+        const response = await sock.sendMessage(jid, { text: data.message });
+        tstate.messageStats.sent++;
 
         return {
             status: true,
@@ -387,47 +392,46 @@ class MessageQueue {
         };
     }
 
-    /**
-     * Función auxiliar para hacer delay
-     */
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**
-     * Obtener estadísticas de la cola
+     * Obtener estadísticas de la cola (per-tenant)
      */
-    getStats() {
+    getStats(tenantId = 'default') {
+        this._ensureTenant(tenantId);
+        const tenant = this.tenants[tenantId];
         return {
-            ...this.stats,
-            isProcessing: this.isProcessing,
-            config: this.config
+            ...tenant.stats,
+            isProcessing: tenant.isProcessing,
+            config: tenant.config
         };
     }
 
     /**
-     * Limpiar cola (cancelar todos los mensajes pendientes)
+     * Limpiar cola (per-tenant)
      */
-    clearQueue() {
-        const canceledCount = this.queue.length;
+    clearQueue(tenantId = 'default') {
+        this._ensureTenant(tenantId);
+        const tenant = this.tenants[tenantId];
+        const canceledCount = tenant.queue.length;
 
-        // Rechazar todos los mensajes pendientes
-        this.queue.forEach(item => {
+        tenant.queue.forEach(item => {
             item.reject(new Error('Cola cancelada manualmente'));
         });
 
-        this.queue = [];
-        this.stats.currentQueueSize = 0;
+        tenant.queue = [];
+        tenant.stats.currentQueueSize = 0;
 
-        console.log(`🗑️ Cola limpiada (${canceledCount} mensajes cancelados)`);
-
+        console.log(`🗑️ Cola limpiada para ${tenantId} (${canceledCount} mensajes cancelados)`);
         return { canceled: canceledCount };
     }
 
     /**
-     * Obtener información de la cola actual
+     * Obtener información de la cola actual (per-tenant)
      */
-    getQueueInfo(tenantId) {
+    getQueueInfo(tenantId = 'default') {
         this._ensureTenant(tenantId);
         const tenant = this.tenants[tenantId];
         let avgDelaySeconds = 0;
@@ -458,44 +462,41 @@ class MessageQueue {
     }
 
     /**
-     * Configurar patrón humano (activar/desactivar)
+     * Configurar patrón humano (per-tenant)
      */
-    setHumanPattern(enabled) {
-        this.config.humanPattern = enabled;
-        console.log(`${enabled ? '✅' : '❌'} Patrón humano ${enabled ? 'activado' : 'desactivado'}`);
+    setHumanPattern(enabled, tenantId = 'default') {
+        this._ensureTenant(tenantId);
+        this.tenants[tenantId].config.humanPattern = enabled;
+        console.log(`${enabled ? '✅' : '❌'} Patrón humano ${enabled ? 'activado' : 'desactivado'} para ${tenantId}`);
     }
 
     /**
-     * Configurar rango de delays con presets
+     * Configurar rango de delays con presets (per-tenant)
      */
-    setDelayPreset(preset) {
+    setDelayPreset(preset, tenantId = 'default') {
+        this._ensureTenant(tenantId);
         const presets = {
-            'rapido': { min: 500, max: 1500 },      // 0.5-1.5s (muy rápido)
-            'moderado': { min: 1000, max: 2500 },   // 1-2.5s (recomendado)
-            'seguro': { min: 2000, max: 4000 },     // 2-4s (seguro)
-            'ultra-seguro': { min: 4000, max: 8000 } // 4-8s (máxima precaución)
+            'rapido': { min: 500, max: 1500 },
+            'moderado': { min: 1000, max: 2500 },
+            'seguro': { min: 2000, max: 4000 },
+            'ultra-seguro': { min: 4000, max: 8000 }
         };
 
         if (presets[preset]) {
-            this.config.minDelay = presets[preset].min;
-            this.config.maxDelay = presets[preset].max;
-            console.log(`⚙️ Preset "${preset}" aplicado: ${presets[preset].min}ms - ${presets[preset].max}ms`);
+            this.tenants[tenantId].config.minDelay = presets[preset].min;
+            this.tenants[tenantId].config.maxDelay = presets[preset].max;
+            console.log(`⚙️ Preset "${preset}" aplicado para ${tenantId}: ${presets[preset].min}ms - ${presets[preset].max}ms`);
         } else {
             console.log(`❌ Preset desconocido. Opciones: ${Object.keys(presets).join(', ')}`);
         }
     }
-
-    // Importar getTenantState de botState para verificar estado del tenant antes de enviar
 }
 
-// Exportar una función para obtener la cola de cada tenant (instancia por tenant)
-const messageQueueInstances = {};
+// Singleton — una única instancia gestiona todos los tenants internamente
+const messageQueue = new MessageQueue();
 
-function getMessageQueue(tenantId = 'default') {
-    if (!messageQueueInstances[tenantId]) {
-        messageQueueInstances[tenantId] = new MessageQueue();
-    }
-    return messageQueueInstances[tenantId];
+function getMessageQueue(_tenantId = 'default') {
+    return messageQueue;
 }
 
 export default getMessageQueue;

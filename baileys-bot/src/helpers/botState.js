@@ -3,7 +3,7 @@ export const botState = {
   // Valores globales (no específicos por tenant)
   botInfo: { startTime: new Date() },
   messageStats: { sent: 0, received: 0 },
-  PORT: process.env.PORT || 3000,
+  PORT: 3000, // Puerto fijo solicitado por el usuario
   // Opciones compartidas para generar QR
   qrOptions: {
     errorCorrectionLevel: 'M',
@@ -11,35 +11,85 @@ export const botState = {
     quality: 0.85,
     margin: 1,
     width: 280
-  }
+  },
+  globalLogs: [],
+  MAX_LOGS: 100
 };
 
-// Mapa de estados por tenant. Cada tenant tendrá su propio objeto con
-// sock, qrCode, isAuthenticated, connectionStatus y botInfo.phoneNumber
-const tenantStates = new Map();
+// Mapa para estados específicos por tenantID
+export const tenantStates = new Map();
 
-const createDefaultTenantState = () => ({
-  sock: null,
-  qrCode: null,
-  isAuthenticated: false,
-  connectionStatus: 'disconnected',
-  botInfo: { phoneNumber: null }
-});
-
-export const getTenantState = (tenantId = 'default') => {
+/**
+ * Obtener estado de un tenant, inicializándolo si no existe
+ */
+export const getTenantState = (tenantId) => {
+  if (!tenantId) tenantId = 'default';
   if (!tenantStates.has(tenantId)) {
-    tenantStates.set(tenantId, createDefaultTenantState());
+    tenantStates.set(tenantId, {
+      isAuthenticated: false,
+      connectionStatus: 'disconnected',
+      qrCode: null,
+      botInfo: { phoneNumber: null },
+      messageStats: { sent: 0, received: 0 },
+      sock: null
+    });
   }
   return tenantStates.get(tenantId);
 };
 
-export const setTenantState = (tenantId = 'default', partial = {}) => {
-  const state = getTenantState(tenantId);
-  Object.assign(state, partial);
-  tenantStates.set(tenantId, state);
-  return state;
+/**
+ * Actualizar estado de un tenant de forma parcial
+ */
+export const setTenantState = (tenantId, newState) => {
+  if (!tenantId) tenantId = 'default';
+  const currentState = getTenantState(tenantId);
+  tenantStates.set(tenantId, { ...currentState, ...newState });
 };
 
-export const deleteTenantState = (tenantId = 'default') => {
-  return tenantStates.delete(tenantId);
+/**
+ * Eliminar estado de un tenant
+ */
+export const deleteTenantState = (tenantId) => {
+  if (tenantId) {
+    tenantStates.delete(tenantId);
+  }
+};
+
+export const addGlobalLog = (tenantId, type, number, status, error = null) => {
+  const log = {
+    id: Date.now() + Math.random(),
+    tenantId,
+    type,
+    number,
+    status, // 'sent', 'failed'
+    error,
+    timestamp: new Date().toISOString()
+  };
+  botState.globalLogs.unshift(log);
+  if (botState.globalLogs.length > botState.MAX_LOGS) {
+    botState.globalLogs.pop();
+  }
+  
+  // También actualizar estadísticas globales si fue exitoso
+  if (status === 'sent') {
+    botState.messageStats.sent++;
+  }
+  
+  return log;
+};
+
+export const getGlobalStats = () => {
+  let totalSent = 0;
+  let totalReceived = 0;
+  let activeBots = 0;
+
+  for (const state of tenantStates.values()) {
+    totalSent += state.messageStats.sent || 0;
+    totalReceived += state.messageStats.received || 0;
+    if (state.connectionStatus === 'connected') {
+      activeBots++;
+    }
+  }
+
+  return { totalSent, totalReceived, activeBots };
 };

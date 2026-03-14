@@ -3,9 +3,8 @@ import TenantLayout from '@/Layouts/TenantLayout.vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { io } from 'socket.io-client';
 
-const faviconUrl = new URL('/src/../public/logos/favicon.png', import.meta.url).href;
-
-let socket = null
+const faviconUrl = '/logos/favicon.png';
+let socket = null;
 const socketChannelRef = ref(null);
 
 
@@ -185,8 +184,12 @@ const displayWhatsappStatus = computed(() => {
         return 'Desconectado';
     }
 
+    if (cs === 'connecting') {
+        return 'Conectando...';
+    }
+
     // Fallback: mostrar connectionStatus si existe o el objeto serializado
-    return s.connectionStatus ?? JSON.stringify(s);
+    return s.connectionStatus || s.status || JSON.stringify(s);
 });
 
 // Computed classes for the status button and the small dot
@@ -201,6 +204,10 @@ const statusButtonClass = computed(() => {
         return 'px-4 py-2 rounded-full text-white shadow bg-red-600 hover:bg-red-700';
     }
 
+    if (cs === 'connecting') {
+        return 'px-4 py-2 rounded-full text-white shadow bg-yellow-500 hover:bg-yellow-600';
+    }
+
     return 'px-4 py-2 rounded-full text-white shadow bg-slate-700';
 });
 
@@ -212,6 +219,9 @@ const dotClass = computed(() => {
     }
     if (cs === 'disconnected' || cs === 'offline' || s?.authenticated === false) {
         return 'inline-block mr-2 text-red-300';
+    }
+    if (cs === 'connecting') {
+        return 'inline-block mr-2 text-yellow-200 animate-pulse';
     }
     return 'inline-block mr-2 text-slate-400';
 });
@@ -229,12 +239,20 @@ const loadingStatus = ref(false);
 const loadingQr = ref(false);
 const errorMsg = ref('');
 
-const stats = [
-    { id: 1, title: 'TIEMPO ACTIVO', value: '20h 54m', description: 'Desde el inicio del servicio', bg: 'bg-gradient-to-r from-sky-600 to-blue-800' },
-    { id: 2, title: 'MENSAJES ENVIADOS', value: 0, description: 'Total de mensajes procesados', bg: 'bg-gradient-to-r from-emerald-500 to-green-600' },
-    { id: 3, title: 'MENSAJES RECIBIDOS', value: 22, description: 'Total de mensajes entrantes', bg: 'bg-gradient-to-r from-indigo-500 to-violet-600' },
-    { id: 4, title: 'ESTADO DEL SISTEMA', value: '100%', description: 'Operatividad del bot', bg: 'bg-gradient-to-r from-gray-600 to-gray-800' }
-];
+// dynamicStats is defined above
+const dynamicStats = computed(() => {
+    const s = whatsappState.value;
+    const sent = s?.messageStats?.sent ?? 0;
+    const received = s?.messageStats?.received ?? 0;
+    const uptime = s?.uptimeFormatted || '0s';
+    
+    return [
+        { id: 1, title: 'TIEMPO ACTIVO', value: uptime, description: 'Desde el inicio del servicio', bg: 'bg-gradient-to-r from-sky-600 to-blue-800' },
+        { id: 2, title: 'MENSAJES ENVIADOS', value: sent, description: 'Total de mensajes procesados', bg: 'bg-gradient-to-r from-emerald-500 to-green-600' },
+        { id: 3, title: 'MENSAJES RECIBIDOS', value: received, description: 'Total de mensajes entrantes', bg: 'bg-gradient-to-r from-indigo-500 to-violet-600' },
+        { id: 4, title: 'ESTADO DEL SISTEMA', value: '100%', description: 'Operatividad del bot', bg: 'bg-gradient-to-r from-gray-600 to-gray-800' }
+    ];
+});
 
 const connected = ref(true);
 const number = ref('');
@@ -366,7 +384,7 @@ async function fetchWhatsappQr() {
 
                 <!-- Stats cards -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div v-for="item in stats" :key="item.id" class="rounded-lg p-4 shadow-md bg-slate-800 text-white">
+                    <div v-for="item in dynamicStats" :key="item.id" class="rounded-lg p-4 shadow-md bg-slate-800 text-white">
                         <div class="flex items-center justify-between">
                             <div>
                                 <div class="text-xs font-semibold text-slate-300">{{ item.title }}</div>
