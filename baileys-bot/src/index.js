@@ -8,6 +8,7 @@ import { startBot } from "./helpers/startBot.js"
 import { botState, getTenantState, deleteTenantState, getGlobalStats } from "./helpers/botState.js";
 import http from "http";
 import { Server as IOServer } from "socket.io";
+import fs from "fs";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -178,7 +179,28 @@ server.listen(PORT, () => {
     console.log(`📍 URL: http://localhost:${PORT}`);
     console.log(`📊 Dashboard disponible`);
     console.log(`📡 API REST lista`);
-    console.log(`ℹ️  Bot se iniciará cuando un tenant lo solicite via Socket.IO`);
+    console.log(`ℹ️  Bot se iniciará cuando un tenant lo solicite via Socket.IO, o automáticamente al inicio.`);
     console.log("");
     
+    // Auto-start existing sessions on server boot
+    try {
+        const sessionPath = path.join(process.cwd(), "session");
+        if (fs.existsSync(sessionPath)) {
+            const tenants = fs.readdirSync(sessionPath, { withFileTypes: true })
+                .filter(dirent => dirent.isDirectory())
+                .map(dirent => dirent.name);
+            
+            if (tenants.length > 0) {
+                console.log(`🔄 Encontradas ${tenants.length} sesiones existentes. Iniciando auto-conexión...`);
+                tenants.forEach((tenantId, index) => {
+                    setTimeout(() => {
+                        console.log(`🔰 Auto-iniciando sesión para tenant: ${tenantId}`);
+                        startBot(tenantId, null);
+                    }, index * 2000); // 2 segundos de separación para no saturar al inicio
+                });
+            }
+        }
+    } catch (error) {
+        console.error("❌ Error al auto-iniciar sesiones:", error);
+    }
 });
