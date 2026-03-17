@@ -45,7 +45,25 @@ class WhatsappController extends Controller
     public function globalStatus()
     {
         try {
-            return Http::get($this->baseUrl() . '/global-status')->json();
+            $data = Http::get($this->baseUrl() . '/global-status')->json();
+            
+            if (isset($data['logs']) && is_array($data['logs'])) {
+                $tenantIds = collect($data['logs'])->pluck('tenantId')->filter()->unique()->toArray();
+                if (!empty($tenantIds)) {
+                    $tenants = \App\Models\Tenant::with('domains')->whereIn('id', $tenantIds)->get()->keyBy('id');
+                    foreach ($data['logs'] as &$log) {
+                        $id = $log['tenantId'] ?? null;
+                        if ($id && isset($tenants[$id])) {
+                            $domain = $tenants[$id]->domains->first();
+                            if ($domain) {
+                                $log['tenantName'] = $domain->domain;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return response()->json($data);
         } catch (\Exception $e) {
             Log::error('Error en globalStatus: ' . $e->getMessage());
             return response()->json([

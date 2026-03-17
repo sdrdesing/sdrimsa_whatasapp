@@ -283,7 +283,7 @@ onBeforeUnmount(() => {
                                 <td
                                     class="px-6 py-4 font-mono text-emerald-400 text-sm"
                                 >
-                                    {{ log.tenantId }}
+                                    {{ log.tenantName || log.tenantId }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span
@@ -313,24 +313,26 @@ onBeforeUnmount(() => {
                                         </svg>
                                         Enviado
                                     </span>
-                                    <span
+                                    <div
                                         v-else
-                                        class="text-red-500 flex items-center gap-1.5 text-sm font-medium"
-                                        :title="log.error"
+                                        class="flex flex-col gap-1"
                                     >
-                                        <svg
-                                            class="w-4 h-4"
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path
-                                                fill-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                                clip-rule="evenodd"
-                                            ></path>
-                                        </svg>
-                                        Fallido
-                                    </span>
+                                        <span class="text-red-500 flex items-center gap-1.5 text-sm font-medium" :title="log.error">
+                                            <svg
+                                                class="w-4 h-4"
+                                                fill="currentColor"
+                                                viewBox="0 0 20 20"
+                                            >
+                                                <path
+                                                    fill-rule="evenodd"
+                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                    clip-rule="evenodd"
+                                                ></path>
+                                            </svg>
+                                            Fallido
+                                        </span>
+                                        <span v-if="log.error" class="text-xs text-red-400 break-words max-w-xs">{{ log.error }}</span>
+                                    </div>
                                 </td>
                                 <td
                                     class="px-6 py-4 text-xs text-slate-400 font-mono"

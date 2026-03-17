@@ -123,4 +123,29 @@ class TenantController extends Controller
         $tenant->delete();
         return redirect()->route('tenants.index');
     }
+
+    public function updatePassword(Request $request, Tenant $tenant)
+    {
+        $request->validate([
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        try {
+            $tenant->run(function () use ($request) {
+                $user = \App\Models\User::first();
+                if ($user) {
+                    $user->update([
+                        'password' => bcrypt($request->password),
+                    ]);
+                } else {
+                    throw new \Exception("No se encontró usuario administrador en el tenant.");
+                }
+            });
+
+            return redirect()->route('tenants.index')->with('success', 'Contraseña actualizada correctamente para el tenant ' . $tenant->id);
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar contraseña del tenant: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Error al cambiar contraseña: ' . $e->getMessage()]);
+        }
+    }
 }
