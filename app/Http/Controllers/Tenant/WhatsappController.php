@@ -48,16 +48,26 @@ class WhatsappController extends Controller
             $data = Http::get($this->baseUrl() . '/global-status')->json();
             
             if (isset($data['logs']) && is_array($data['logs'])) {
-                $tenantIds = collect($data['logs'])->pluck('tenantId')->filter()->unique()->toArray();
-                if (!empty($tenantIds)) {
-                    $tenants = \App\Models\Tenant::with('domains')->whereIn('id', $tenantIds)->get()->keyBy('id');
+                $tenantSockets = collect($data['logs'])->pluck('tenantId')->filter()->unique()->toArray();
+                if (!empty($tenantSockets)) {
+                    $map = [];
+                    $tenants = \App\Models\Tenant::with('domains')->get();
+                    foreach ($tenants as $t) {
+                        try {
+                            $t->run(function () use (&$map, $t) {
+                                $socket = \App\Models\tenant\TenantSocket::first();
+                                if ($socket && $socket->socket_channel) {
+                                    $domain = $t->domains->first();
+                                    $map[$socket->socket_channel] = $domain ? $domain->domain : $t->id;
+                                }
+                            });
+                        } catch (\Exception $e) {}
+                    }
+                    
                     foreach ($data['logs'] as &$log) {
                         $id = $log['tenantId'] ?? null;
-                        if ($id && isset($tenants[$id])) {
-                            $domain = $tenants[$id]->domains->first();
-                            if ($domain) {
-                                $log['tenantName'] = $domain->domain;
-                            }
+                        if ($id && isset($map[$id])) {
+                            $log['tenantName'] = $map[$id];
                         }
                     }
                 }
