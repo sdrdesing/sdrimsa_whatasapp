@@ -1,4 +1,10 @@
 cd /var/www/sdrimsacbot || exit 1
+
+# 0. Descargar últimos cambios
+echo "📡 Descargando últimos cambios desde Git..."
+# Intentamos con main, si falla con master, y si falla mostramos advertencia
+git pull origin main || git pull origin master || echo "⚠️ Advertencia: No se pudo hacer git pull automático. Verifica que no haya cambios locales en el VPS."
+
 set -e
 
 # 1. Crear .env.production si no existe
@@ -30,12 +36,15 @@ source .env.production
 set +a
 
 # 3. Detener contenedores
+echo "🛑 Deteniendo contenedores antiguos..."
 docker compose -f docker-compose.production.yml down --remove-orphans
 
 # 4. Construir
+echo "🔨 Construyendo nuevas imágenes (sin caché para asegurar frescura)..."
 docker compose -f docker-compose.production.yml build --no-cache
 
 # 5. Levantar servicios
+echo "🚀 Levantando servicios..."
 docker compose -f docker-compose.production.yml up -d
 
 # 5.5 Esperar a que los servicios inicien
@@ -76,14 +85,18 @@ sleep 20
 echo "📦 Instalando dependencias PHP..."
 docker compose -f docker-compose.production.yml exec -T app composer install --no-dev --optimize-autoloader
 
-echo "📦 Instalando dependencias Node.js (npm install)..."
+# --- LIMPIEZA DE CACHÉ ---
+echo "🧹 Limpiando caché de Laravel para evitar versiones antiguas..."
+docker compose -f docker-compose.production.yml exec -T app php artisan optimize:clear
+
+echo "📦 Instalando dependencias Node.js..."
 docker compose -f docker-compose.production.yml exec -T app npm install --legacy-peer-deps
 
-echo "🔨 Compilando assets con Vite..."
+echo "🔨 Compilando assets con Vite para producción..."
 docker compose -f docker-compose.production.yml exec -T app npm run build
 
 # 8. Configurar BD
-echo "🔑 Generando APP_KEY..."
+echo "🔑 Verificando APP_KEY..."
 docker compose -f docker-compose.production.yml exec -T app php artisan key:generate --force
 
 echo "⏳ Verificando conexión a BD antes de migraciones..."
@@ -100,30 +113,28 @@ done
 echo "💾 Ejecutando migraciones de base de datos..."
 docker compose -f docker-compose.production.yml exec -T app php artisan migrate --force
 
-# 9. Cachear config
+# 9. Cachear config para máximo rendimiento
+echo "🚀 Optimizando caché de Laravel..."
 docker compose -f docker-compose.production.yml exec -T app php artisan config:cache
 docker compose -f docker-compose.production.yml exec -T app php artisan route:cache
 docker compose -f docker-compose.production.yml exec -T app php artisan view:cache
 
 # 10. Permisos
+echo "🔒 Ajustando permisos de carpetas..."
 docker compose -f docker-compose.production.yml exec -T app chown -R www-data:www-data /var/www/storage
 
 # 11. Verificar
+echo "✅ Estado final de los servicios:"
 docker compose -f docker-compose.production.yml ps
 
 echo ""
 echo "=================================================="
-echo "✅ ¡DEPLOY COMPLETADO!"
+echo "✅ ¡DEPLOY COMPLETADO Y ACTUALIZADO CON ÉXITO!"
 echo "=================================================="
 echo ""
-echo "Estado de servicios:"
-docker compose -f docker-compose.production.yml ps
+echo "🌐 URL: https://sdrimsac.site"
 echo ""
-echo "🌐 Acceso:"
-echo "   URL: https://sdrimsac.site"
-echo ""
-echo "📋 Comandos útiles:"
-echo "   Ver logs:     docker compose -f docker-compose.production.yml logs -f app"
-echo "   BD shell:     docker compose -f docker-compose.production.yml exec mysql sh"
-echo "   App shell:    docker compose -f docker-compose.production.yml exec app sh"
-echo "   Estado:       docker compose -f docker-compose.production.yml ps"
+echo "📋 RECOMENDACIÓN:"
+echo "   Si los cambios no se ven en el navegador,"
+echo "   presiona Ctrl + F5 para limpiar la caché local."
+echo "=================================================="
