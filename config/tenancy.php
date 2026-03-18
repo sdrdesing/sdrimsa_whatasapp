@@ -23,8 +23,8 @@ return [
 
     'central_domains' => [
         'localhost',
-        'sdrimsac.site',
-        'www.sdrimsac.site',
+        'sdrimsac.xyz',
+        'www.sdrimsac.xyz',
         parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost',
     ],
 

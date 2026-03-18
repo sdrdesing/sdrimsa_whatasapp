@@ -59,7 +59,7 @@ else
 fi
 
 # Verificar certificado SSL
-CERT_DATE=$(date -d "$(openssl x509 -in /etc/letsencrypt/live/sdrimsac.site/cert.pem -noout -enddate | cut -d= -f 2)" +%s 2>/dev/null)
+CERT_DATE=$(date -d "$(openssl x509 -in /etc/letsencrypt/live/sdrimsac.xyz/cert.pem -noout -enddate | cut -d= -f 2)" +%s 2>/dev/null)
 TODAY=$(date +%s)
 DAYS_LEFT=$(( ($CERT_DATE - $TODAY) / 86400 ))
 

@@ -21,9 +21,9 @@
 
 ```bash
 # Conectarse al VPS
-ssh root@sdrimsac.site
+ssh root@sdrimsac.xyz
 # o
-ssh user@sdrimsac.site
+ssh user@sdrimsac.zyz
 
 # Actualizar sistema
 apt update && apt upgrade -y
@@ -86,7 +86,7 @@ nano .env.production
 
 ```env
 APP_KEY=                    # Generar con: php artisan key:generate
-APP_URL=https://sdrimsac.site
+APP_URL=https://sdrimsac.xyz
 
 # Base de datos (generar contraseña segura)
 DB_PASSWORD=Tu_Contraseña_Segura_Aqui
@@ -120,10 +120,10 @@ docker compose -f docker-compose.production.yml down 2>/dev/null || true
 
 # Generar certificado Let's Encrypt
 certbot certonly --standalone \
-  -d sdrimsac.site \
-  -d www.sdrimsac.site \
-  -d *.sdrimsac.site \
-  --email admin@sdrimsac.site \
+  -d sdrimsac.xyz \
+  -d www.sdrimsac.xyz \
+  -d *.sdrimsac.xyz \
+  --email admin@sdrimsac.xyz \
   --agree-tos \
   -n
 ```
@@ -211,14 +211,14 @@ docker compose -f docker-compose.production.yml exec app php artisan tinker
 
 # Dentro de tinker:
 $tenant = \App\Models\Tenant::create(['id' => 'tu-primer-tenant']);
-$tenant->domains()->create(['domain' => 'tenant1.sdrimsac.site']);
+$tenant->domains()->create(['domain' => 'tenant1.sdrimsac.xyz']);
 exit;
 ```
 
 O crear mediante script artisan si lo tienes:
 
 ```bash
-docker compose -f docker-compose.production.yml exec app php artisan tenant:create tu-primer-tenant tenant1.sdrimsac.site
+docker compose -f docker-compose.production.yml exec app php artisan tenant:create tu-primer-tenant tenant1.sdrimsac.xyz
 ```
 
 ---
