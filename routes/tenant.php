@@ -42,8 +42,17 @@ Route::middleware([
             return Inertia::render('tenancy/Home');
         })->name('home');
 
+        // Perfil del tenant
+        Route::get('/profile', [\App\Http\Controllers\Tenant\TenantProfileController::class, 'edit'])->name('tenant.profile.edit');
+        Route::patch('/profile', [\App\Http\Controllers\Tenant\TenantProfileController::class, 'update'])->name('tenant.profile.update');
+        Route::put('/password', [\App\Http\Controllers\Auth\PasswordController::class, 'update'])->name('tenant.password.update');
+
+
         // Rutas de WhatsApp
         Route::prefix('whatsapp')->name('whatsapp.')->group(function () {
+            Route::get('/messages', function () {
+                return Inertia::render('tenancy/messaje');
+            })->name('messages');
             Route::get('/tables', [WhatsappController::class, 'tables'])->name('tables');
             Route::get('/status', [WhatsappController::class, 'status'])->name('status');
             Route::get('/qr', [WhatsappController::class, 'qr'])->name('qr');

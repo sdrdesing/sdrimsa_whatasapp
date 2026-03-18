@@ -109,7 +109,7 @@ class MessageQueue {
                 if (!tenantState || tenantState.connectionStatus !== 'connected') {
                     console.log(`⚠️ Tenant ${tenantIdFromData} desconectado — mensaje ${item.id} marcado como fallido`);
                     const error = 'El bot está desconectado o la sesión no es válida';
-                    addGlobalLog(tenantIdFromData, item.data.type, item.data.number || item.data.groupJid, 'failed', error);
+                    addGlobalLog(tenantIdFromData, item.data.type, item.data.number || item.data.groupJid, 'failed', error, item.data.message || item.data.caption || item.data.type);
                     item.reject({
                         status: false,
                         error: 'Tenant desconectado',
@@ -132,7 +132,7 @@ class MessageQueue {
                 }
 
                 const result = await this.sendMessage(item);
-                addGlobalLog(tenantIdFromData, item.data.type, item.data.number || item.data.groupJid, 'sent');
+                addGlobalLog(tenantIdFromData, item.data.type, item.data.number || item.data.groupJid, 'sent', null, item.data.message || item.data.caption || item.data.type);
                 item.resolve(result);
                 tenant.queue.shift();
                 tenant.stats.totalSent++;
@@ -164,7 +164,7 @@ class MessageQueue {
                     continue; // Reintentar el mismo mensaje
                 }
 
-                addGlobalLog(tenantIdFromData, item.data.type, item.data.number || item.data.groupJid, 'failed', errorMsg);
+                addGlobalLog(tenantIdFromData, item.data.type, item.data.number || item.data.groupJid, 'failed', errorMsg, item.data.message || item.data.caption || item.data.type);
                 // Fallido definitivamente
                 item.reject({
                     status: false,

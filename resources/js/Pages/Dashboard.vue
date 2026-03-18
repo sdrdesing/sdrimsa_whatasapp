@@ -46,318 +46,188 @@ onBeforeUnmount(() => {
     <Head title="Dashboard" />
 
     <AuthenticatedLayout>
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div
-                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                >
-                    <!-- Card: Tiempo activo -->
-                    <div
-                        class="relative overflow-hidden rounded-lg p-6 shadow-md bg-gradient-to-br from-slate-800 to-slate-900 text-white"
-                    >
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <div class="text-xs text-slate-300 uppercase">
-                                    Tiempo activo (Global)
-                                </div>
-                                <div class="mt-2 text-2xl font-semibold">
-                                    {{ stats.uptime }}
-                                </div>
-                                <div class="mt-1 text-sm text-slate-400">
-                                    Servidor del Bot
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end space-y-2">
-                                <div
-                                    class="h-10 w-10 rounded-md flex items-center justify-center bg-blue-500"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-5 w-5 text-white"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M12 8v4l2 2"
-                                        />
-                                        <circle
-                                            cx="12"
-                                            cy="12"
-                                            r="9"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Card: Mensajes enviados -->
-                    <div
-                        class="relative overflow-hidden rounded-lg p-6 shadow-md bg-gradient-to-br from-slate-800 to-slate-900 text-white"
-                    >
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <div class="text-xs text-slate-300 uppercase">
-                                    Mensajes enviados
-                                </div>
-                                <div class="mt-2 text-2xl font-semibold">
-                                    {{ stats.sent }}
-                                </div>
-                                <div class="mt-1 text-sm text-slate-400">
-                                    Total acumulado
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end space-y-2">
-                                <div
-                                    class="h-10 w-10 rounded-md flex items-center justify-center bg-green-500"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-5 w-5 text-white"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M22 2L11 13"
-                                        />
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M22 2l-7 20  -4-9-9-4 20-7z"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Card: Mensajes recibidos -->
-                    <div
-                        class="relative overflow-hidden rounded-lg p-6 shadow-md bg-gradient-to-br from-slate-800 to-slate-900 text-white"
-                    >
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <div class="text-xs text-slate-300 uppercase">
-                                    Mensajes recibidos
-                                </div>
-                                <div class="mt-2 text-2xl font-semibold">
-                                    {{ stats.received }}
-                                </div>
-                                <div class="mt-1 text-sm text-slate-400">
-                                    Total acumulado
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end space-y-2">
-                                <div
-                                    class="h-10 w-10 rounded-md flex items-center justify-center bg-purple-600"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-5 w-5 text-white"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6"
-                                        />
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M7 13l3 3 7-7"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Card: Bots Activos -->
-                    <div
-                        class="relative overflow-hidden rounded-lg p-6 shadow-md bg-gradient-to-br from-slate-800 to-slate-900 text-white"
-                    >
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <div class="text-xs text-slate-300 uppercase">
-                                    Bots Activos
-                                </div>
-                                <div class="mt-2 text-2xl font-semibold">
-                                    {{ stats.activeBots }}
-                                </div>
-                                <div class="mt-1 text-sm text-slate-400">
-                                    Conexiones abiertas
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end space-y-2">
-                                <div
-                                    class="h-10 w-10 rounded-md flex items-center justify-center bg-slate-700"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-5 w-5 text-white"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M12 2l9 4-9 4-9-4 9-4z"
-                                        />
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M12 10v10"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Sección de Logs / Cola Global -->
-        <div class="mt-8">
-            <div
-                class="bg-slate-800 rounded-lg shadow-md overflow-hidden text-white"
-            >
-                <div
-                    class="p-6 border-b border-slate-700 flex justify-between items-center"
-                >
+        <div class="py-10 min-h-screen bg-[#071626] relative">
+            <!-- Decorative top background -->
+            <div class="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-[#0a233d] to-transparent pointer-events-none -z-10"></div>
+            
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
+                
+                <!-- Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-0">
                     <div>
-                        <h2 class="text-xl font-bold">
-                            Registro de Mensajes Global
-                        </h2>
-                        <p class="text-sm text-slate-400">
-                            Últimos eventos procesados por todos los clientes
-                        </p>
+                        <h1 class="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm">Panel de Control Global</h1>
+                        <p class="text-sm text-slate-400 mt-1 animate-pulse">Monitoreo en tiempo real de todos los Tenants</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span
-                            class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"
-                        ></span>
-                        <span
-                            class="text-xs text-slate-400 uppercase tracking-wider"
-                            >En tiempo real</span
-                        >
+                    <div class="mt-4 sm:mt-0 flex items-center gap-2 bg-[#0a233d]/80 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-white/5">
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                        </span>
+                        <span class="text-xs font-bold text-slate-200 tracking-widest uppercase">Sistema Activo</span>
                     </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead
-                            class="bg-slate-900 text-xs uppercase text-slate-300"
-                        >
-                            <tr>
-                                <th class="px-6 py-3">Tenant</th>
-                                <th class="px-6 py-3">Tipo</th>
-                                <th class="px-6 py-3">Destino</th>
-                                <th class="px-6 py-3">Estado</th>
-                                <th class="px-6 py-3">Detalle / Error</th>
-                                <th class="px-6 py-3">Fecha</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-700">
-                            <tr
-                                v-for="log in stats.logs"
-                                :key="log.id"
-                                class="hover:bg-slate-700/50 transition-colors"
-                            >
-                                <td
-                                    class="px-6 py-4 font-mono text-emerald-400 text-sm"
-                                >
-                                    {{ log.tenantName || log.tenantId }}
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span
-                                        class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-700 text-slate-300 border border-slate-600"
-                                    >
-                                        {{ log.type }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-sm font-medium">
-                                    {{ log.number }}
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span
-                                        v-if="log.status === 'sent'"
-                                        class="text-emerald-500 flex items-center gap-1.5 text-sm font-medium"
-                                    >
-                                        <svg
-                                            class="w-4 h-4"
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path
-                                                fill-rule="evenodd"
-                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                clip-rule="evenodd"
-                                            ></path>
-                                        </svg>
-                                        Enviado
-                                    </span>
-                                    <span
-                                        v-else
-                                        class="text-red-500 flex items-center gap-1.5 text-sm font-medium"
-                                    >
-                                        <svg
-                                            class="w-4 h-4"
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path
-                                                fill-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                                clip-rule="evenodd"
-                                            ></path>
-                                        </svg>
-                                        Fallido
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span v-if="log.error" class="text-xs text-red-400 break-words max-w-xs">{{ log.error }}</span>
-                                    <span v-else class="text-xs text-slate-500">-</span>
-                                </td>
-                                <td
-                                    class="px-6 py-4 text-xs text-slate-400 font-mono"
-                                >
-                                    {{
-                                        new Date(
-                                            log.timestamp,
-                                        ).toLocaleTimeString()
-                                    }}
-                                </td>
-                            </tr>
-                            <tr v-if="stats.logs.length === 0">
-                                <td
-                                    colspan="6"
-                                    class="px-6 py-12 text-center text-slate-500 italic"
-                                >
-                                    No hay actividad reciente en la cola de
-                                    mensajería.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <!-- Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4 sm:px-0">
+                    <!-- Card: Tiempo Activo -->
+                    <div class="bg-[#0e2a47] rounded-2xl p-6 shadow-xl border border-white/5 hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)] transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tiempo de Actividad</p>
+                                <h3 class="text-3xl font-black text-white tracking-tight group-hover:text-blue-400 transition-colors">{{ stats.uptime }}</h3>
+                                <p class="text-xs font-medium text-slate-400 mt-2 flex items-center gap-1">Servidor del Bot Node</p>
+                            </div>
+                            <div class="h-12 w-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20 text-white transform group-hover:scale-110 group-hover:shadow-blue-500/40 transition-all duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l2 2m-2-10a9 9 0 110 18 9 9 0 010-18z" /></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card: Sent -->
+                    <div class="bg-[#0e2a47] rounded-2xl p-6 shadow-xl border border-white/5 hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.15)] transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mensajes Enviados</p>
+                                <h3 class="text-3xl font-black text-white tracking-tight group-hover:text-emerald-400 transition-colors">{{ stats.sent }}</h3>
+                                <p class="text-xs font-medium text-slate-400 mt-2">Total de salidas globales</p>
+                            </div>
+                            <div class="h-12 w-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg shadow-emerald-500/20 text-white transform group-hover:scale-110 group-hover:shadow-emerald-500/40 transition-all duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card: Received -->
+                    <div class="bg-[#0e2a47] rounded-2xl p-6 shadow-xl border border-white/5 hover:border-purple-500/30 hover:shadow-[0_8px_30px_rgba(168,85,247,0.15)] transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mensajes Recibidos</p>
+                                <h3 class="text-3xl font-black text-white tracking-tight group-hover:text-purple-400 transition-colors">{{ stats.received }}</h3>
+                                <p class="text-xs font-medium text-slate-400 mt-2">Total de entradas globales</p>
+                            </div>
+                            <div class="h-12 w-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500 to-fuchsia-600 shadow-lg shadow-purple-500/20 text-white transform group-hover:scale-110 group-hover:shadow-purple-500/40 transition-all duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6m14 0l-3-3m3 3l-3 3M6 13l3-3m-3 3l3 3" /></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card: Active Bots -->
+                    <div class="bg-[#0e2a47] rounded-2xl p-6 shadow-xl border border-white/5 hover:border-amber-500/30 hover:shadow-[0_8px_30px_rgba(245,158,11,0.15)] transition-all duration-300 hover:-translate-y-1 group">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Bots Activos</p>
+                                <h3 class="text-3xl font-black text-white tracking-tight group-hover:text-amber-400 transition-colors">{{ stats.activeBots }}</h3>
+                                <p class="text-xs font-medium text-slate-400 mt-2">Conexiones simultáneas</p>
+                            </div>
+                            <div class="h-12 w-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-orange-500/20 text-white transform group-hover:scale-110 group-hover:shadow-orange-500/40 transition-all duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Table Section -->
+                <div class="px-4 sm:px-0">
+                    <div class="bg-[#0e2a47] rounded-2xl shadow-xl border border-white/5 overflow-hidden">
+                        
+                        <!-- Table Head/Controls -->
+                        <div class="px-6 py-5 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-white">Últimos Eventos del Sistema</h2>
+                                <p class="text-sm text-slate-400">Registro global de actividad de mensajería procesada.</p>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left whitespace-nowrap">
+                                <thead>
+                                    <tr class="bg-[#081e36] text-[10px] font-bold tracking-widest text-slate-400 uppercase border-b border-white/5">
+                                        <th class="px-6 py-4">Tenant (Subdominio)</th>
+                                        <th class="px-6 py-4">Status</th>
+                                        <th class="px-6 py-4">Tipo</th>
+                                        <th class="px-6 py-4 min-w-[250px]">Mensaje</th>
+                                        <th class="px-6 py-4">Destinatario</th>
+                                        <th class="px-6 py-4 text-right">Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5 bg-[#0e2a47]">
+                                    <tr v-for="log in stats.logs" :key="log.id" class="hover:bg-white/[0.02] transition-colors duration-200 group">
+                                        
+                                        <!-- Tenant Name -->
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="h-8 w-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-xs ring-1 ring-blue-500/30 group-hover:bg-blue-500 group-hover:text-white transition-colors duration-300">
+                                                    {{ (log.tenantName || log.tenantId).charAt(0).toUpperCase() }}
+                                                </div>
+                                                <span class="font-semibold text-slate-200 text-sm tracking-tight">{{ log.tenantName || log.tenantId }}</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Status Badge -->
+                                        <td class="px-6 py-4">
+                                            <span v-if="log.status === 'sent'" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm">
+                                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]"></span>
+                                                Enviado
+                                            </span>
+                                            <div v-else class="flex flex-col gap-1">
+                                                <span class="inline-flex items-center gap-1.5 w-max px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-sm">
+                                                    <span class="h-1.5 w-1.5 rounded-full bg-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.8)]"></span>
+                                                    Fallido
+                                                </span>
+                                                <span v-if="log.error" class="text-[10px] text-rose-400/80 max-w-[150px] truncate" :title="log.error">{{ log.error }}</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Type -->
+                                        <td class="px-6 py-4">
+                                            <span class="px-2 py-1 rounded text-[10px] font-black tracking-wider uppercase bg-[#081e36] text-slate-400 border border-white/5">
+                                                {{ log.type }}
+                                            </span>
+                                        </td>
+
+                                        <!-- Message content with hover tooltip -->
+                                        <td class="px-6 py-4">
+                                            <div class="relative group/tooltip">
+                                                <p class="text-sm text-slate-300 truncate max-w-[250px] font-medium" :title="log.messageContent || '-'">
+                                                    {{ log.messageContent || '-' }}
+                                                </p>
+                                            </div>
+                                        </td>
+
+                                        <!-- Destination -->
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-2 text-sm font-semibold text-slate-200">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                                {{ log.number || log.groupJid }}
+                                            </div>
+                                        </td>
+
+                                        <!-- Date -->
+                                        <td class="px-6 py-4 text-right">
+                                            <span class="text-xs font-semibold text-slate-400 tabular-nums bg-[#081e36] px-2 py-1.5 rounded-lg border border-white/5 shadow-inner">
+                                                {{ new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }}
+                                            </span>
+                                        </td>
+                                    </tr>
+
+                                    <tr v-if="stats.logs.length === 0">
+                                        <td colspan="6" class="px-6 py-16 text-center">
+                                            <div class="flex flex-col items-center justify-center space-y-3">
+                                                <div class="h-16 w-16 bg-[#081e36] rounded-full flex items-center justify-center text-slate-500 mb-2 border border-white/5 box-shadow-inner">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6m14 0l-3-3m3 3l-3 3M6 13l3-3m-3 3l3 3" /></svg>
+                                                </div>
+                                                <h3 class="text-sm font-bold text-slate-300">No hay actividad reciente</h3>
+                                                <p class="text-sm text-slate-500">Los mensajes procesados aparecerán aquí en vivo.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </AuthenticatedLayout>

@@ -55,7 +55,7 @@ export const deleteTenantState = (tenantId) => {
   }
 };
 
-export const addGlobalLog = (tenantId, type, number, status, error = null) => {
+export const addGlobalLog = (tenantId, type, number, status, error = null, messageContent = null) => {
   const log = {
     id: Date.now() + Math.random(),
     tenantId,
@@ -63,6 +63,7 @@ export const addGlobalLog = (tenantId, type, number, status, error = null) => {
     number,
     status, // 'sent', 'failed'
     error,
+    messageContent,
     timestamp: new Date().toISOString()
   };
   botState.globalLogs.unshift(log);

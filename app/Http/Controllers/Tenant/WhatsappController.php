@@ -30,10 +30,15 @@ class WhatsappController extends Controller
         return $socket ? $socket->socket_channel : null;
     }
 
-    public function status()
+    public function status(Request $request)
     {
         try {
-            return Http::get($this->baseUrl() . '/status')->json();
+            $tenantId = $request->query('tenantId');
+            $url = $this->baseUrl() . '/status';
+            if ($tenantId) {
+                $url .= '?tenantId=' . urlencode($tenantId);
+            }
+            return Http::get($url)->json();
         } catch (\Exception $e) {
             Log::error('Error en status: ' . $e->getMessage());
             return response()->json([
