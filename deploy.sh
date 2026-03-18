@@ -14,7 +14,7 @@ APP_NAME=sdrimsacbot
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:gURgrvfW8HLNz/GLI2i9Xk0b47+aSzt3GNOLatBqjJ8=
-APP_URL=https://sdrimsac.site
+APP_URL=https://sdrimsac.xyz
 
 DB_HOST=mysql
 DB_DATABASE=sdrimsacbot
@@ -132,7 +132,7 @@ echo "=================================================="
 echo "✅ ¡DEPLOY COMPLETADO Y ACTUALIZADO CON ÉXITO!"
 echo "=================================================="
 echo ""
-echo "🌐 URL: https://sdrimsac.site"
+echo "🌐 URL: https://sdrimsac.xyz"
 echo ""
 echo "📋 RECOMENDACIÓN:"
 echo "   Si los cambios no se ven en el navegador,"
