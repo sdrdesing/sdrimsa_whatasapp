@@ -210,12 +210,12 @@ class MessageQueue {
                 queue: [],
                 isProcessing: false,
                 config: {
-                    minDelay: 300,
-                    maxDelay: 700,
+                    minDelay: 2000,
+                    maxDelay: 5000,
                     randomVariation: true,
-                    humanPattern: false,
+                    humanPattern: true,
                     maxRetries: 3,
-                    retryDelay: 2000
+                    retryDelay: 3000
                 },
                 stats: {
                     totalQueued: 0,
@@ -272,6 +272,12 @@ class MessageQueue {
         const sock = tstate.sock || data.sock;
         if (!sock) {
             throw new Error('Connection Closed');
+        }
+
+        // Verificar si el número está en WhatsApp antes de enviar
+        const [resultOnWhatsApp] = await sock.onWhatsApp(jid);
+        if (!resultOnWhatsApp?.exists) {
+            throw new Error('El número no está registrado en WhatsApp');
         }
 
         const response = await sock.sendMessage(jid, { text: data.message });
@@ -344,6 +350,12 @@ class MessageQueue {
         const sock = tstate.sock || data.sock;
         if (!sock) {
             throw new Error('Connection Closed');
+        }
+
+        // Verificar si el número está en WhatsApp antes de enviar
+        const [resultOnWhatsApp] = await sock.onWhatsApp(jid);
+        if (!resultOnWhatsApp?.exists) {
+            throw new Error('El número no está registrado en WhatsApp');
         }
 
         const response = await sock.sendMessage(jid, messageContent);
