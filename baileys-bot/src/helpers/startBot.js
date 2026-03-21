@@ -4,6 +4,14 @@ import { botState, setTenantState, getTenantState } from "./botState.js";
 import { setSocket } from "../controllers/messageController.js";
 import fs from "fs";
 
+// Caché para reintentos de mensajes (soluciona "Esperando el mensaje")
+const msgRetryCounterCacheStore = new Map();
+const msgRetryCounterCache = {
+    get: (key) => msgRetryCounterCacheStore.get(key),
+    set: (key, val) => msgRetryCounterCacheStore.set(key, val),
+    del: (key) => msgRetryCounterCacheStore.delete(key),
+};
+
 // Control de reconexiones por tenant
 const reconnectAttempts = new Map();
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -52,8 +60,11 @@ export async function startBot(tenantId, dashboardSocket = null) {
         const sock = makeWASocket({
             version,
             auth: state,
+            msgRetryCounterCache, // Añadido para resolver "Esperando mensaje"
             printQRInTerminal: false,
-            markOnlineOnConnect: true
+            markOnlineOnConnect: true,
+            defaultQueryTimeoutMs: 60000, // Aumentar timeout para sesiones lentas
+            syncFullHistory: false, // No sincronizar todo el historial para evitar lag
         });
 
         // Registrar socket en el controlador por tenant
