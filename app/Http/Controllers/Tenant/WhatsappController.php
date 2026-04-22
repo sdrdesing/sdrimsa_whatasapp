@@ -152,6 +152,39 @@ class WhatsappController extends Controller
         }
     }
 
+    /**
+     * Obtener lista de grupos con sus JIDs
+     */
+    public function getGroups()
+    {
+        try {
+            $socketChannel = $this->getTenantSocketChannel();
+            
+            if (!$socketChannel) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Bot no está configurado para este tenant',
+                    'groups' => [],
+                    'totalGroups' => 0
+                ], 422);
+            }
+
+            $response = Http::get($this->baseUrl() . '/api/groups', [
+                'tenantId' => $socketChannel,
+            ]);
+            
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error en getGroups: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'error' => 'Error al obtener grupos: ' . $e->getMessage(),
+                'groups' => [],
+                'totalGroups' => 0
+            ], 500);
+        }
+    }
+
     public function send_media(Request $request)
     {
         try {

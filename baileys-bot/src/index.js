@@ -30,7 +30,8 @@ import {
     deleteSession,
     getSocketForTenant,
     attachDashboardToTenant,
-    sendMediaToGroup
+    sendMediaToGroup,
+    getGroups
 } from "./controllers/messageController.js";
 
 const upload = multer({ dest: "uploads/" });
@@ -135,6 +136,9 @@ app.get("/api/chats", getChats);
 
 // Mostrar chats con nombres
 app.get("/api/show-chats", showChats);
+
+// Obtener lista de grupos con JID
+app.get("/api/groups", getGroups);
 
 // Enviar archivo a chat por nombre
 app.post("/api/send-file-chat", sendFileToChat);

@@ -56,6 +56,7 @@ Route::middleware([
             Route::get('/tables', [WhatsappController::class, 'tables'])->name('tables');
             Route::get('/status', [WhatsappController::class, 'status'])->name('status');
             Route::get('/qr', [WhatsappController::class, 'qr'])->name('qr');
+            Route::get('/groups', [WhatsappController::class, 'getGroups'])->name('groups');
             Route::post('/send', [WhatsappController::class, 'send'])->name('send');
             Route::post('/send-media', [WhatsappController::class, 'send_media'])->name('send_media');
             Route::post('/send-group', [WhatsappController::class, 'send_to_group'])->name('send_to_group');

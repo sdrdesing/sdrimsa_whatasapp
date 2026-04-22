@@ -32,6 +32,9 @@ function getStore(tenantId) {
     return stores.get(tenantId);
 }
 
+// Exportar para uso externo
+export { getStore };
+
 
 /**
  * Calcula delay con backoff exponencial

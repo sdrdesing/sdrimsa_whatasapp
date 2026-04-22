@@ -1,5 +1,6 @@
 import fs from "fs";
 import getMessageQueue from "../helpers/messageQueue.js";
+import { getStore } from "../helpers/startBot.js";
 
 // Mapa de sockets por tenant
 const socks = new Map();
@@ -201,6 +202,83 @@ export const showChats = async (req, res) => {
     } catch (error) {
         console.error("Error en showChats:", error);
         return res.status(500).json({ status: false, message: error.message });
+    }
+};
+
+// ============================================================
+// OBTENER LISTA DE GRUPOS CON JID
+// ============================================================
+export const getGroups = async (req, res) => {
+    try {
+        const tenantId = getTenantIdFromReq(req);
+        const sock = getSockForTenant(tenantId);
+        if (!sock) {
+            return res.status(422).json({ status: false, message: "Bot no está conectado" });
+        }
+
+        const store = getStore(tenantId);
+        if (!store || !store.chats) {
+            return res.status(200).json({
+                status: true,
+                message: "Store no disponible, use sock.groupFetchAllParticipating()",
+                groups: []
+            });
+        }
+
+        // Obtener todos los chats del store y filtrar solo grupos
+        const allChats = Object.values(store.chats.all());
+        const groups = allChats
+            .filter(chat => chat.id.endsWith('@g.us'))
+            .map(group => ({
+                jid: group.id,
+                name: group.name || group.subject || 'Sin nombre',
+                participants: group.participants?.length || 0,
+                isCommunity: group.id.includes('@c.us') // WhatsApp Communities
+            }))
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        // Si el store no tiene grupos, intentar obtenerlos directamente del socket
+        if (groups.length === 0 && sock.groupFetchAllParticipating) {
+            try {
+                const groupsData = await sock.groupFetchAllParticipating();
+                const fetchedGroups = Object.values(groupsData).map(group => ({
+                    jid: group.id,
+                    name: group.subject || 'Sin nombre',
+                    participants: group.participants?.length || 0,
+                    isCommunity: false
+                })).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+                return res.status(200).json({
+                    status: true,
+                    message: "Grupos obtenidos directamente del socket",
+                    groups: fetchedGroups,
+                    totalGroups: fetchedGroups.length
+                });
+            } catch (fetchError) {
+                console.error("Error obteniendo grupos del socket:", fetchError);
+                return res.status(200).json({
+                    status: true,
+                    message: "No se pudieron obtener grupos",
+                    groups: [],
+                    totalGroups: 0
+                });
+            }
+        }
+
+        return res.status(200).json({
+            status: true,
+            message: "Grupos obtenidos del store",
+            groups: groups,
+            totalGroups: groups.length
+        });
+    } catch (error) {
+        console.error("Error en getGroups:", error);
+        return res.status(500).json({ 
+            status: false, 
+            message: error.message,
+            groups: [],
+            totalGroups: 0
+        });
     }
 };
 
