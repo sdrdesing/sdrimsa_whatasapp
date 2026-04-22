@@ -29,7 +29,8 @@ import {
     clearQueue,
     deleteSession,
     getSocketForTenant,
-    attachDashboardToTenant
+    attachDashboardToTenant,
+    sendMediaToGroup
 } from "./controllers/messageController.js";
 
 const upload = multer({ dest: "uploads/" });
@@ -53,33 +54,39 @@ function formatUptime(seconds) {
 // ENDPOINT - ESTADO DE LA CONEXIÓN
 // ============================================================
 app.get("/status", (req, res) => {
-    const tenantId = req.query?.tenantId;
-    const uptime = Math.floor((new Date() - botState.botInfo.startTime) / 1000);
-    const uptimeFormatted = formatUptime(uptime);
+    try {
+        const tenantId = req.query?.tenantId;
+        const startTime = botState.botInfo?.startTime || new Date();
+        const uptime = Math.floor((new Date() - startTime) / 1000);
+        const uptimeFormatted = formatUptime(uptime);
 
-    if (tenantId) {
-        const tstate = getTenantState(tenantId);
-        return res.json({
-            tenantId,
-            authenticated: tstate?.isAuthenticated || false,
-            connectionStatus: tstate?.connectionStatus || 'disconnected',
+        if (tenantId) {
+            const tstate = getTenantState(tenantId);
+            return res.json({
+                tenantId,
+                authenticated: tstate?.isAuthenticated || false,
+                connectionStatus: tstate?.connectionStatus || 'disconnected',
+                uptime: uptime,
+                uptimeFormatted: uptimeFormatted,
+                messageStats: tstate?.messageStats || { sent: 0, received: 0 },
+                phoneNumber: tstate?.botInfo?.phoneNumber || null,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        res.json({
+            authenticated: false,
+            connectionStatus: 'unknown',
             uptime: uptime,
             uptimeFormatted: uptimeFormatted,
-            messageStats: tstate?.messageStats || { sent: 0, received: 0 },
-            phoneNumber: tstate?.botInfo?.phoneNumber || null,
+            messageStats: botState.messageStats,
+            phoneNumber: null,
             timestamp: new Date().toISOString()
         });
+    } catch (err) {
+        console.error("🔥 Error en endpoint /status:", err);
+        res.status(500).json({ error: "Internal Error", message: err.message });
     }
-
-    res.json({
-        authenticated: false,
-        connectionStatus: 'unknown',
-        uptime: uptime,
-        uptimeFormatted: uptimeFormatted,
-        messageStats: botState.messageStats,
-        phoneNumber: null,
-        timestamp: new Date().toISOString()
-    });
 });
 
 
@@ -88,20 +95,26 @@ app.get("/status", (req, res) => {
 // ENDPOINT - ESTADO GLOBAL (Para Dashboard Admin)
 // ============================================================
 app.get("/global-status", (req, res) => {
-    const uptime = Math.floor((new Date() - botState.botInfo.startTime) / 1000);
-    const uptimeFormatted = formatUptime(uptime);
-    
-    const { totalSent, totalReceived, activeBots } = getGlobalStats();
-    
-    res.json({
-        uptime,
-        uptimeFormatted,
-        totalSent,
-        totalReceived,
-        activeBots,
-        logs: botState.globalLogs,
-        timestamp: new Date().toISOString()
-    });
+    try {
+        const startTime = botState.botInfo?.startTime || new Date();
+        const uptime = Math.floor((new Date() - startTime) / 1000);
+        const uptimeFormatted = formatUptime(uptime);
+        
+        const { totalSent, totalReceived, activeBots } = getGlobalStats();
+        
+        res.json({
+            uptime,
+            uptimeFormatted,
+            totalSent,
+            totalReceived,
+            activeBots,
+            logs: botState.globalLogs,
+            timestamp: new Date().toISOString()
+        });
+    } catch (err) {
+        console.error("🔥 Error en endpoint /global-status:", err);
+        res.status(500).json({ error: "Internal Error", message: err.message });
+    }
 });
 
 // Enviar mensaje normal (texto)
@@ -112,6 +125,10 @@ app.post("/api/send-medias", sendMedia);
 
 // Enviar mensaje a grupo por JID
 app.post("/api/send-group", sendToGroup);
+
+// Enviar archivo/media a grupo por JID
+app.post("/api/send-group-media", sendMediaToGroup);
+
 
 // Obtener lista de chats
 app.get("/api/chats", getChats);

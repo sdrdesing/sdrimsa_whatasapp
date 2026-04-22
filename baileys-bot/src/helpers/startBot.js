@@ -1,4 +1,4 @@
-import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion } from "@whiskeysockets/baileys";
+import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion, makeInMemoryStore } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
 import { botState, setTenantState, getTenantState } from "./botState.js";
 import { setSocket } from "../controllers/messageController.js";
@@ -17,6 +17,21 @@ const reconnectAttempts = new Map();
 const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_RECONNECT_DELAY = 3000; // 3 seconds
 const MAX_RECONNECT_DELAY = 60000; // 60 seconds
+
+// Almacén de mensajes en memoria por tenant para reintentos (Previene "Esperando mensaje" en iPhone)
+const stores = new Map();
+
+function getStore(tenantId) {
+    if (!stores.has(tenantId)) {
+        const store = makeInMemoryStore({});
+        // Opcional: cargar desde archivo si se desea persistencia
+        // const storePath = `./session/${tenantId}/store.json`;
+        // if (fs.existsSync(storePath)) store.readFromFile(storePath);
+        stores.set(tenantId, store);
+    }
+    return stores.get(tenantId);
+}
+
 
 /**
  * Calcula delay con backoff exponencial
@@ -57,6 +72,8 @@ export async function startBot(tenantId, dashboardSocket = null) {
 
         console.log(`✅ Baileys v${version.join(".")} cargado para tenant ${tenantId}`);
 
+        const store = getStore(tenantId);
+
         const sock = makeWASocket({
             version,
             auth: state,
@@ -65,7 +82,19 @@ export async function startBot(tenantId, dashboardSocket = null) {
             markOnlineOnConnect: true,
             defaultQueryTimeoutMs: 60000, // Aumentar timeout para sesiones lentas
             syncFullHistory: false, // No sincronizar todo el historial para evitar lag
+            // Función crucial para resolver "Esperando mensaje" en iPhone
+            getMessage: async (key) => {
+                if (store) {
+                    const msg = await store.loadMessage(key.remoteJid, key.id);
+                    return msg?.message || undefined;
+                }
+                return { conversation: "Resending message..." }; // Placeholder fallback
+            }
         });
+
+        // Vincular el store al socket para que capture mensajes
+        store.bind(sock.ev);
+
 
         // Registrar socket en el controlador por tenant
         setSocket(tenantId, sock);

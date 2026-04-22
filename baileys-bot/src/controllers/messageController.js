@@ -278,6 +278,49 @@ export const sendToGroup = async (req, res) => {
 };
 
 // ============================================================
+// ENVIAR ARCHIVO/VIDEO A GRUPO POR JID DIRECTO - CON COLA
+// ============================================================
+export const sendMediaToGroup = async (req, res) => {
+    try {
+        const { groupJid, caption } = req.body;
+        const file = req.files?.file;
+        const tenantId = getTenantIdFromReq(req);
+        const sock = getSockForTenant(tenantId);
+        if (!sock) return res.status(422).json({ status: false, message: "Bot no está conectado" });
+        if (!groupJid || !file) {
+            return res.status(400).json({ status: false, message: "Faltan parámetros: groupJid, file" });
+        }
+
+        const messageQueue = getMessageQueue(tenantId);
+        // Usamos el tipo 'media' pero pasando el groupJid como 'number' ya que messageQueue.formatJid lo manejará
+        const promise = messageQueue.addToQueue({ 
+            type: 'media', 
+            sock, 
+            tenantId, 
+            number: groupJid, 
+            file, 
+            caption: caption || "" 
+        });
+        console.log(`✅ Archivo de grupo agregado a la cola para ${groupJid} (tenant: ${tenantId}): ${file.name}`);
+
+        promise.then(result => {
+            console.log(`🔔 Archivo de grupo procesado (background):`, result?.data || result);
+        }).catch(err => {
+            console.error(`❌ Error procesando archivo de grupo en la cola (background):`, err?.message || err);
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: "Archivo agregado a la cola de envío (Grupo)",
+            queueInfo: messageQueue.getQueueInfo(tenantId)
+        });
+    } catch (error) {
+        console.error("Error en sendMediaToGroup:", error);
+        return res.status(500).json({ status: false, message: error.message, response: error });
+    }
+};
+
+// ============================================================
 // GESTIÓN DE COLA
 // ============================================================
 

@@ -156,98 +156,19 @@ class WhatsappController extends Controller
     {
         try {
             $socketChannel = $this->getTenantSocketChannel();
-            
             if (!$socketChannel) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Bot no está configurado para este tenant'
-                ], 422);
+                return response()->json(['status' => false, 'message' => 'Bot no está configurado para este tenant'], 422);
             }
 
-                $missing = [];
-                if (!$request->number) {
-                    $missing[] = 'number';
-                }
-                if (!$request->media_url && !$request->file_base64) {
-                    $missing[] = '(media_url o file_base64)';
-                }
-                if (count($missing) > 0) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Faltan parámetros: ' . implode(', ', $missing),
-                        'faltantes' => $missing
-                    ], 422);
-                }
-
-            $usingBase64 = (bool) $request->file_base64;
-            $fileName = 'media';
-            $fileBody = '';
-            $headerMime = '';
-
-            if ($usingBase64) {
-                // Priorizar archivo enviado en base64 + nombre explícito
-                $fileName = $request->file_name ?: 'media';
-                $headerMime = $request->file_mime ?: '';
-                $fileBody = base64_decode($request->file_base64, true);
-
-                if ($fileBody === false) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'file_base64 no es válido'
-                    ], 422);
-                }
-            } else {
-                // Descargar el archivo remoto y enviarlo como multipart/form-data al bot
-                $fileResponse = Http::timeout(15)->get($request->media_url);
-
-                if (!$fileResponse->successful()) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'No se pudo descargar el archivo desde media_url'
-                    ], 422);
-                }
-
-                // Permitir override explícito del nombre/MIME aunque venga por URL
-                $fileName = $request->file_name ?: basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
-                $fileBody = $fileResponse->body();
-                $headerMime = $request->file_mime ?: ($fileResponse->header('Content-Type') ?? '');
+            if (!$request->number) {
+                return response()->json(['status' => false, 'message' => 'Falta el parámetro: number'], 422);
             }
 
-            // Resolver MIME de forma robusta por extensión y contenido
-            $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-            $mimeByExt = match ($ext) {
-                'pdf' => 'application/pdf',
-                'xml' => 'application/xml',
-                'txt' => 'text/plain',
-                'jpg', 'jpeg' => 'image/jpeg',
-                'png' => 'image/png',
-                'gif' => 'image/gif',
-                'mp4' => 'video/mp4',
-                'mp3' => 'audio/mpeg',
-                'doc' => 'application/msword',
-                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'xls' => 'application/vnd.ms-excel',
-                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'zip' => 'application/zip',
-                default => ''
-            };
-
-            $detectedMime = '';
-            if (function_exists('finfo_open')) {
-                try {
-                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                    $detectedMime = $finfo->buffer($fileBody) ?: '';
-                } catch (\Throwable $t) {
-                    $detectedMime = '';
-                }
-            }
-
-            // Prioridad: por extensión -> por contenido -> header remoto -> octet-stream
-            $mimeType = $mimeByExt ?: $detectedMime ?: $headerMime ?: 'application/octet-stream';
-
+            $media = $this->prepareMediaData($request);
+            if (isset($media['error'])) return response()->json($media, 422);
 
             $response = Http::timeout(30)
-                ->attach('file', $fileBody, $fileName, ['Content-Type' => $mimeType])
+                ->attach('file', $media['body'], $media['name'], ['Content-Type' => $media['mime']])
                 ->post($this->baseUrl() . '/api/send-medias', [
                     'number'   => $request->number,
                     'caption'  => $request->caption,
@@ -257,8 +178,135 @@ class WhatsappController extends Controller
             return response()->json($response->json(), $response->status());
         } catch (\Exception $e) {
             Log::error('Error en send_media: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Enviar mensaje de texto a un grupo por su JID
+     */
+    public function send_to_group(Request $request)
+    {
+        try {
+            $socketChannel = $this->getTenantSocketChannel();
+            if (!$socketChannel) return response()->json(['status' => false, 'message' => 'Bot no configurado'], 422);
+            if (!$request->groupJid || !$request->message) {
+                return response()->json(['status' => false, 'message' => 'Faltan parámetros: groupJid, message'], 400);
+            }
+
+            $response = Http::post($this->baseUrl() . '/api/send-group', [
+                'groupJid' => $request->groupJid,
+                'message'  => $request->message,
+                'tenantId' => $socketChannel,
+            ]);
+            
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Enviar media (video, imagen, archivo) a un grupo por su JID
+     */
+    public function send_media_to_group(Request $request)
+    {
+        try {
+            $socketChannel = $this->getTenantSocketChannel();
+            if (!$socketChannel) return response()->json(['status' => false, 'message' => 'Bot no configurado'], 422);
+            if (!$request->groupJid) {
+                return response()->json(['status' => false, 'message' => 'Falta el parámetro: groupJid'], 422);
+            }
+
+            $media = $this->prepareMediaData($request);
+            if (isset($media['error'])) return response()->json($media, 422);
+
+            $response = Http::timeout(60)
+                ->attach('file', $media['body'], $media['name'], ['Content-Type' => $media['mime']])
+                ->post($this->baseUrl() . '/api/send-group-media', [
+                    'groupJid' => $request->groupJid,
+                    'caption'  => $request->caption,
+                    'tenantId' => $socketChannel,
+                ]);
+            
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Método privado para procesar la media (Common logic)
+     */
+    private function prepareMediaData(Request $request)
+    {
+        if (!$request->media_url && !$request->file_base64) {
+            return ['error' => 'No se proporcionó media_url ni file_base64', 'status' => false];
+        }
+
+        $usingBase64 = (bool) $request->file_base64;
+        $fileName = 'media';
+        $fileBody = '';
+        $headerMime = '';
+
+        if ($usingBase64) {
+            $fileName = $request->file_name ?: 'media';
+            $headerMime = $request->file_mime ?: '';
+            $fileBody = base64_decode($request->file_base64, true);
+            if ($fileBody === false) return ['error' => 'Base64 inválido', 'status' => false];
+        } else {
+            $fileResponse = Http::timeout(15)->get($request->media_url);
+            if (!$fileResponse->successful()) return ['error' => 'Error descargando media_url', 'status' => false];
+            $fileName = $request->file_name ?: basename(parse_url($request->media_url, PHP_URL_PATH) ?? 'media');
+            $fileBody = $fileResponse->body();
+            $headerMime = $request->file_mime ?: ($fileResponse->header('Content-Type') ?? '');
+        }
+
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        $mimeByExt = match ($ext) {
+            'pdf' => 'application/pdf',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'mp4' => 'video/mp4',
+            'mp3' => 'audio/mpeg',
+            'zip' => 'application/zip',
+            default => ''
+        };
+
+        $mime = $mimeByExt ?: $headerMime ?: 'application/octet-stream';
+
+        return [
+            'body' => $fileBody,
+            'name' => $fileName,
+            'mime' => $mime
+        ];
+    }
+
+
+    public function sendMessageByName(Request $request)
+    {
+        try {
+            $socketChannel = $this->getTenantSocketChannel();
+            
+            if (!$socketChannel) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Bot no está configurado para este tenant'
+                ], 422);
+            }
+
+            $response = Http::post($this->baseUrl() . '/api/send-message-by-name', [
+                'name'    => $request->name,
+                'message' => $request->message,
+                'tenantId' => $socketChannel,
+            ]);
+            
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            Log::error('Error en send-message-by-name: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Error al enviar media: ' . $e->getMessage(),
+                'error' => 'Error al enviar mensaje por nombre: ' . $e->getMessage(),
                 'message' => 'No se puede conectar al servicio de WhatsApp. Por favor, intenta más tarde.'
             ], 500);
         }

@@ -58,6 +58,8 @@ Route::middleware([
             Route::get('/qr', [WhatsappController::class, 'qr'])->name('qr');
             Route::post('/send', [WhatsappController::class, 'send'])->name('send');
             Route::post('/send-media', [WhatsappController::class, 'send_media'])->name('send_media');
+            Route::post('/send-group', [WhatsappController::class, 'send_to_group'])->name('send_to_group');
+            Route::post('/send-group-media', [WhatsappController::class, 'send_media_to_group'])->name('send_media_to_group');
             Route::post('/delete-session', [WhatsappController::class, 'deleteSession'])->name('delete_session');
         });
 

@@ -352,11 +352,14 @@ class MessageQueue {
             throw new Error('Connection Closed');
         }
 
-        // Verificar si el número está en WhatsApp antes de enviar
-        const [resultOnWhatsApp] = await sock.onWhatsApp(jid);
-        if (!resultOnWhatsApp?.exists) {
-            throw new Error('El número no está registrado en WhatsApp');
+        // Verificar si el número está en WhatsApp antes de enviar (Saltar en grupos)
+        if (!jid.endsWith('@g.us')) {
+            const [resultOnWhatsApp] = await sock.onWhatsApp(jid);
+            if (!resultOnWhatsApp?.exists) {
+                throw new Error('El número no está registrado en WhatsApp');
+            }
         }
+
 
         const response = await sock.sendMessage(jid, messageContent);
         tstate.messageStats.sent++;
