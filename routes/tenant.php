@@ -21,6 +21,8 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 |
 */
 
+use App\Http\Controllers\Tenant\TenantDashboardController;
+
 Route::middleware([
     'web',
     InitializeTenancyByDomain::class,
@@ -28,9 +30,7 @@ Route::middleware([
 ])->group(function () {
 
     // Ruta pública de login del tenant
-    Route::get('/', function () {
-        return Inertia::render('tenancy/Auth/Login');
-    })->name('login');
+    Route::get('/', [TenantDashboardController::class, 'login'])->name('login');
 
     Route::post('/', [AuthenticatedSessionController::class, 'store']);
 
@@ -38,9 +38,7 @@ Route::middleware([
     Route::middleware('auth')->group(function () {
 
         // Página principal del tenant (opcional)
-        Route::get('/Home', function () {
-            return Inertia::render('tenancy/Home');
-        })->name('home');
+        Route::get('/Home', [TenantDashboardController::class, 'home'])->name('home');
 
         // Perfil del tenant
         Route::get('/profile', [\App\Http\Controllers\Tenant\TenantProfileController::class, 'edit'])->name('tenant.profile.edit');
@@ -50,9 +48,7 @@ Route::middleware([
 
         // Rutas de WhatsApp
         Route::prefix('whatsapp')->name('whatsapp.')->group(function () {
-            Route::get('/messages', function () {
-                return Inertia::render('tenancy/messaje');
-            })->name('messages');
+            Route::get('/messages', [TenantDashboardController::class, 'messages'])->name('messages');
             Route::get('/tables', [WhatsappController::class, 'tables'])->name('tables');
             Route::get('/status', [WhatsappController::class, 'status'])->name('status');
             Route::get('/qr', [WhatsappController::class, 'qr'])->name('qr');

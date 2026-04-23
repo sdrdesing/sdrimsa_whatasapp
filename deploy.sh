@@ -7,10 +7,10 @@ git pull origin main || git pull origin master || echo "⚠️ Advertencia: No s
 
 set -e
 
-# 1. Crear .env.production si no existe
+# 1. Verificar .env
 if [ ! -f ".env" ]; then
-    cat > .env << 'EOF'
-EOF
+    echo "❌ Error: No existe el archivo .env en el VPS. Por favor, créalo antes de continuar."
+    exit 1
 fi
 
 # 2. Cargar variables del .env.production para usarlas en el script
@@ -108,7 +108,7 @@ echo "=================================================="
 echo "✅ ¡DEPLOY COMPLETADO Y ACTUALIZADO CON ÉXITO!"
 echo "=================================================="
 echo ""
-echo "🌐 URL: https://sdrimsac.xyz"
+echo "🌐 URL: https://sdrpersonal.shop"
 echo ""
 echo "📋 RECOMENDACIÓN:"
 echo "   Si los cambios no se ven en el navegador,"

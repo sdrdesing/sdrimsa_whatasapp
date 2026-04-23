@@ -16,17 +16,15 @@ use Inertia\Inertia;
 |
 */
 
+use App\Http\Controllers\System\DashboardController;
+
 foreach (config('tenancy.central_domains') as $domain) {
     Route::domain($domain)->group(function () {
 
-        Route::get('/', function () {
-        // Redirige la raíz al login por defecto
-        return redirect()->route('system.login');
-    });
+        Route::get('/', [DashboardController::class, 'welcome']);
 
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->middleware(['auth'])->name('system.dashboard');
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->middleware(['auth'])->name('system.dashboard');
 
     Route::middleware('auth')->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
