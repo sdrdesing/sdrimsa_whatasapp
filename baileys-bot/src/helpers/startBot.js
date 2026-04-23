@@ -1,10 +1,4 @@
-import * as Baileys from "@whiskeysockets/baileys";
-const makeWASocket = Baileys.default || Baileys.makeWASocket;
-const { 
-    useMultiFileAuthState, 
-    fetchLatestBaileysVersion, 
-    makeInMemoryStore 
-} = Baileys;
+import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion, makeInMemoryStore } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
 import { botState, setTenantState, getTenantState } from "./botState.js";
 import { setSocket } from "../controllers/messageController.js";
