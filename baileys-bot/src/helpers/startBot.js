@@ -1,4 +1,4 @@
-import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion, makeInMemoryStore } from "@whiskeysockets/baileys";
+import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
 import { botState, setTenantState, getTenantState } from "./botState.js";
 import { setSocket } from "../controllers/messageController.js";
@@ -19,14 +19,30 @@ const BASE_RECONNECT_DELAY = 3000; // 3 seconds
 const MAX_RECONNECT_DELAY = 60000; // 60 seconds
 
 // Almacén de mensajes en memoria por tenant para reintentos (Previene "Esperando mensaje" en iPhone)
+// Store simple sin makeInMemoryStore (compatible con Baileys 6.5.0)
 const stores = new Map();
 
 function getStore(tenantId) {
     if (!stores.has(tenantId)) {
-        const store = makeInMemoryStore({});
-        // Opcional: cargar desde archivo si se desea persistencia
-        // const storePath = `./session/${tenantId}/store.json`;
-        // if (fs.existsSync(storePath)) store.readFromFile(storePath);
+        // Store simple en memoria (compatible con Baileys 6.5.0)
+        const store = {
+            messages: new Map(),
+            loadMessage: async (jid, id) => {
+                const key = `${jid}:${id}`;
+                return store.messages.get(key);
+            },
+            bind: (ev) => {
+                // Escuchar mensajes y almacenarlos
+                ev.on('messages.upsert', ({ messages }) => {
+                    messages.forEach(msg => {
+                        if (msg.key && msg.key.id) {
+                            const key = `${msg.key.remoteJid}:${msg.key.id}`;
+                            store.messages.set(key, msg);
+                        }
+                    });
+                });
+            }
+        };
         stores.set(tenantId, store);
     }
     return stores.get(tenantId);
