@@ -17,3 +17,12 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+# Baileys Bot
+/baileys-bot/node_modules
+/baileys-bot/session
+/baileys-bot/uploads
+# System & Docker
+.DS_Store
+Thumbs.db
+docker-compose.override.yml
+.vite
